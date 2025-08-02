@@ -7,8 +7,8 @@
  */
 const CONFIG = {
   // Relay Planner Webhook URL - handles roadmap generation requests
-  RELAY_PLANNER_WEBHOOK: 'https://hook.relay.app/api/v1/playbook/cmdu377i51l5o0nkt40wdamac/trigger/y7X62S7EioiHox_2_pcGAA',
-  
+  RELAY_PLANNER_WEBHOOK: 'https://hook.relay.app/api/v1/playbook/cmduiceva38nz0pm01ak3dyl6/trigger/PC9NzQQCWKBs6W4pYoIkjw',
+
   // Airtable configuration for storing and retrieving roadmap data
   AIRTABLE_BASE_ID: 'appQjqTJK6ZBf7lU0',
   AIRTABLE_PROGRESS_TABLE: 'Progress',

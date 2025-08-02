@@ -277,6 +277,10 @@ const Home = ({
   // Use theme from context instead of local state
   const { isDarkMode } = useTheme();
 
+  useEffect(() => {
+    document.title = 'PathForge - Generate Roadmap';
+  }, []);
+
   // Form state
   const [formData, setFormData] = useState({
     skill: '',
@@ -441,6 +445,8 @@ const Home = ({
 
   // Handle form submission
   const handleSubmit = async () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
     if (!validateForm()) {
       return;
     }
@@ -508,7 +514,7 @@ const Home = ({
           if (onSwitchToWorkplace) {
             onSwitchToWorkplace();
           }
-        }, 2000);
+        }, 1000);
       },
       (errorMessage) => {
         console.error('❌ Polling failed:', errorMessage);
@@ -709,7 +715,7 @@ const Home = ({
                 </div>
 
                 {/* Debug Info (Development only) */}
-                {formData.userID && (
+                {formData.userID && process.env.NODE_ENV === 'development' && (
                   <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 transition-colors duration-200">
                     <div className="text-xs text-gray-600 dark:text-gray-400 transition-colors duration-200">
                       <div className="font-medium mb-1">Debug Information:</div>
@@ -741,6 +747,7 @@ const Home = ({
                         ) : (
                           'Generate My Roadmap'
                         )}
+                        
                       </Button>
                     )}
 
