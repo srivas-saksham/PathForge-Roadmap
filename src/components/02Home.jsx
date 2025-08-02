@@ -1,21 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Mail, Target, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import RoadmapService, { generateUserID } from '../services/RoadmapService';
+import { BookOpen, Mail, Target, Clock, CheckCircle, AlertCircle, Users, Award, TrendingUp, Zap, ArrowRight, Globe, Star } from 'lucide-react';
+
+// Import the theme hook from ThemeProvider
+import { useTheme } from './ThemeProvider';
+
+// Mock RoadmapService for demo purposes
+const RoadmapService = {
+  submitToPlanner: async (data) => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    return { isCompleted: false };
+  },
+  pollForData: (userID, onProgress, onSuccess, onError) => {
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    const poll = () => {
+      attempts++;
+      onProgress(`Generating roadmap... (${attempts}/${maxAttempts})`);
+      
+      setTimeout(() => {
+        if (attempts >= maxAttempts) {
+          onSuccess({
+            weeks: Array.from({length: 8}, (_, i) => ({
+              week: i + 1,
+              title: `Week ${i + 1} Learning Goals`,
+              tasks: [`Task 1 for week ${i + 1}`, `Task 2 for week ${i + 1}`]
+            }))
+          });
+        } else {
+          poll();
+        }
+      }, 1000);
+    };
+    
+    poll();
+  }
+};
+
+const generateUserID = () => {
+  return 'user_' + Math.random().toString(36).substr(2, 9);
+};
 
 // --- UI COMPONENTS ---
-const Button = ({ children, onClick, disabled, variant = 'primary', className = '', size = 'md' }) => {
-  const baseClasses = 'rounded-lg font-medium transition-colors focus:outline-none focus:ring-2';
+const Button = ({ children, onClick, disabled, variant = 'primary', className = '', size = 'md', icon: Icon }) => {
+  const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-900';
+  
   const variants = {
-    primary: 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white focus:ring-blue-500',
-    secondary: 'bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
-    success: 'bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white focus:ring-green-500'
+    primary: 'bg-[#5C946E] hover:bg-[#4a7a59] text-white focus:ring-[#5C946E] shadow-sm hover:shadow-md',
+    secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700 focus:ring-gray-500 border border-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 dark:border-gray-600',
+    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 shadow-sm',
+    success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 shadow-sm',
+    outline: 'bg-transparent border-2 border-[#5C946E] text-[#5C946E] hover:bg-[#5C946E] hover:text-white focus:ring-[#5C946E] dark:border-[#5C946E] dark:text-[#5C946E]'
   };
   
   const sizes = {
-    sm: 'px-3 py-1 text-sm',
-    md: 'px-4 py-2',
-    lg: 'px-6 py-3 text-lg'
+    sm: 'px-3 py-1.5 text-sm rounded-md',
+    md: 'px-4 py-2.5 text-sm rounded-lg',
+    lg: 'px-6 py-3 text-base rounded-lg'
   };
   
   return (
@@ -24,53 +66,68 @@ const Button = ({ children, onClick, disabled, variant = 'primary', className = 
       disabled={disabled}
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
     >
+      {Icon && <Icon className="w-4 h-4 mr-2" />}
       {children}
     </button>
   );
 };
 
-const Input = ({ label, icon: Icon, error, ...props }) => (
-  <div className="space-y-1">
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+const Input = ({ label, icon: Icon, error, className = '', ...props }) => (
+  <div className="space-y-2">
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-200">
       {label}
     </label>
     <div className="relative">
       {Icon && (
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Icon className="h-4 w-4 text-gray-400" />
+          <Icon className="h-4 w-4 text-gray-400 dark:text-gray-500 transition-colors duration-200" />
         </div>
       )}
       <input
         {...props}
-        className={`w-full border rounded-lg py-2 px-3 ${Icon ? 'pl-10' : ''} 
-          ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} 
-          bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-          focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed`}
+        className={`
+          w-full border border-gray-300 rounded-lg py-2.5 px-3 
+          ${Icon ? 'pl-10' : ''} 
+          ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-[#5C946E] focus:ring-[#5C946E] dark:border-gray-600 dark:focus:border-[#5C946E]'} 
+          bg-white text-gray-900 placeholder-gray-400
+          dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500
+          focus:ring-2 focus:ring-opacity-20 focus:outline-none
+          disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
+          dark:disabled:bg-gray-700 dark:disabled:text-gray-400
+          transition-all duration-200
+          ${className}
+        `}
       />
     </div>
-    {error && <p className="text-sm text-red-600">{error}</p>}
+    {error && <p className="text-sm text-red-600 dark:text-red-400 flex items-center transition-colors duration-200"><AlertCircle className="w-3 h-3 mr-1" />{error}</p>}
   </div>
 );
 
-const Select = ({ label, icon: Icon, options, error, ...props }) => (
-  <div className="space-y-1">
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+const Select = ({ label, icon: Icon, options, error, className = '', ...props }) => (
+  <div className="space-y-2">
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-200">
       {label}
     </label>
     <div className="relative">
       {Icon && (
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Icon className="h-4 w-4 text-gray-400" />
+          <Icon className="h-4 w-4 text-gray-400 dark:text-gray-500 transition-colors duration-200" />
         </div>
       )}
       <select
         {...props}
-        className={`w-full border rounded-lg py-2 px-3 ${Icon ? 'pl-10' : ''} 
-          ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} 
-          bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-          focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed`}
+        className={`
+          w-full border border-gray-300 rounded-lg py-2.5 px-3 
+          ${Icon ? 'pl-10' : ''} 
+          ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-[#5C946E] focus:ring-[#5C946E] dark:border-gray-600 dark:focus:border-[#5C946E]'} 
+          bg-white text-gray-900
+          dark:bg-gray-800 dark:text-gray-100
+          focus:ring-2 focus:ring-opacity-20 focus:outline-none
+          disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
+          dark:disabled:bg-gray-700 dark:disabled:text-gray-400
+          transition-all duration-200
+          ${className}
+        `}
       >
         {options.map(option => (
           <option key={option.value} value={option.value}>
@@ -79,7 +136,7 @@ const Select = ({ label, icon: Icon, options, error, ...props }) => (
         ))}
       </select>
     </div>
-    {error && <p className="text-sm text-red-600">{error}</p>}
+    {error && <p className="text-sm text-red-600 dark:text-red-400 flex items-center transition-colors duration-200"><AlertCircle className="w-3 h-3 mr-1" />{error}</p>}
   </div>
 );
 
@@ -92,9 +149,9 @@ const StatusCard = ({ icon: Icon, title, message, variant = 'info', showSpinner 
   };
 
   return (
-    <div className={`p-4 border rounded-lg ${variants[variant]}`}>
-      <div className="flex items-center space-x-3">
-        <div className="flex-shrink-0">
+    <div className={`p-4 border rounded-lg transition-colors duration-200 ${variants[variant]}`}>
+      <div className="flex items-start space-x-3">
+        <div className="flex-shrink-0 mt-0.5">
           {showSpinner ? (
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
           ) : (
@@ -102,8 +159,8 @@ const StatusCard = ({ icon: Icon, title, message, variant = 'info', showSpinner 
           )}
         </div>
         <div className="flex-1">
-          <h3 className="font-medium">{title}</h3>
-          <p className="text-sm mt-1">{message}</p>
+          <h3 className="font-medium text-sm">{title}</h3>
+          <p className="text-sm mt-1 opacity-90">{message}</p>
         </div>
       </div>
     </div>
@@ -122,6 +179,23 @@ const LoadingSpinner = ({ size = 'md' }) => {
   );
 };
 
+const TipItem = ({ icon: Icon, text }) => (
+  <div className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors duration-200">
+    <Icon className="w-4 h-4 text-[#5C946E] mt-0.5 flex-shrink-0" />
+    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed transition-colors duration-200">{text}</p>
+  </div>
+);
+
+const FeatureCard = ({ icon: Icon, title, description }) => (
+  <div className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors duration-200">
+    <Icon className="w-5 h-5 text-[#5C946E] mt-0.5 flex-shrink-0" />
+    <div>
+      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">{title}</h4>
+      <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{description}</p>
+    </div>
+  </div>
+);
+
 // --- MAIN HOME COMPONENT ---
 const Home = ({ 
   onRoadmapGenerated, 
@@ -129,13 +203,17 @@ const Home = ({
   existingFormData = null,
   isGenerating = false 
 }) => {
+  // Use theme from context instead of local state
+  const { isDarkMode } = useTheme();
+
   // Form state
   const [formData, setFormData] = useState({
     skill: '',
     userID: '',
     email: '',
     goal: 'Get a Job',
-    level: 'Beginner'
+    level: 'Beginner',
+    weeks: '8'
   });
 
   // UI state
@@ -164,10 +242,8 @@ const Home = ({
   // Initialize form data
   useEffect(() => {
     if (existingFormData) {
-      // Use existing form data if provided
       setFormData(existingFormData);
     } else {
-      // Generate new userID for new session
       setFormData(prev => ({
         ...prev,
         userID: generateUserID()
@@ -207,6 +283,12 @@ const Home = ({
       errors.level = 'Current level is required';
     }
 
+    if (!formData.weeks.trim()) {
+      errors.weeks = 'Number of weeks is required';
+    } else if (isNaN(formData.weeks) || parseInt(formData.weeks) < 1 || parseInt(formData.weeks) > 12) {
+      errors.weeks = 'Please enter a number between 1 and 12 weeks';
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -224,12 +306,10 @@ const Home = ({
 
   // Handle form submission
   const handleSubmit = async () => {
-    // Validate form
     if (!validateForm()) {
       return;
     }
 
-    // Check if already generating
     if (generationState !== 'idle') {
       return;
     }
@@ -240,17 +320,14 @@ const Home = ({
     setSubmissionCount(prev => prev + 1);
 
     try {
-      // Ensure userID is present
       const userID = formData.userID || generateUserID();
       const submissionData = { ...formData, userID };
       
       console.log('🎯 Starting roadmap generation process...', submissionData);
 
-      // Submit to Relay Planner
       const plannerResult = await RoadmapService.submitToPlanner(submissionData);
       console.log('📤 Planner result:', plannerResult);
 
-      // Update status based on planner response
       if (plannerResult.isCompleted) {
         console.log('✅ Planner reported completion, starting data fetch...');
         setGenerationState('polling');
@@ -260,7 +337,6 @@ const Home = ({
         console.log('⏳ Planner still processing, waiting for completion...');
         setStatusMessage('AI is processing your request...');
         
-        // Start polling after a short delay
         setTimeout(() => {
           setGenerationState('polling');
           setStatusMessage('Checking for completion and fetching data...');
@@ -268,7 +344,6 @@ const Home = ({
         }, 3000);
       }
 
-      // Notify parent component about the submission
       if (onRoadmapGenerated) {
         onRoadmapGenerated(submissionData);
       }
@@ -285,29 +360,25 @@ const Home = ({
   const startDataPolling = (userID) => {
     RoadmapService.pollForData(
       userID,
-      // Progress callback
       (message) => {
         setStatusMessage(message);
       },
-      // Success callback
       (roadmapData) => {
         console.log('🎉 Roadmap generation completed!', roadmapData);
         setGenerationState('completed');
         setStatusMessage('Roadmap generated successfully!');
         
-        // Notify parent and switch to workplace
         if (onRoadmapGenerated) {
           onRoadmapGenerated(formData, roadmapData);
         }
         
-        // Auto-switch to workplace after a brief delay
         setTimeout(() => {
+          resetForm();
           if (onSwitchToWorkplace) {
             onSwitchToWorkplace();
           }
         }, 2000);
       },
-      // Error callback
       (errorMessage) => {
         console.error('❌ Polling failed:', errorMessage);
         setError(errorMessage);
@@ -324,12 +395,12 @@ const Home = ({
     setStatusMessage('');
     setFormErrors({});
     setSubmissionCount(0);
-    // Generate new userID for fresh start
     setFormData(prev => ({
       skill: '',
-      email: prev.email, // Keep email for convenience
+      email: prev.email,
       goal: 'Get a Job',
       level: 'Beginner',
+      weeks: '8',
       userID: generateUserID()
     }));
   };
@@ -347,194 +418,322 @@ const Home = ({
   const hasError = generationState === 'error';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
-      <div className="container mx-auto">
-        <div className="max-w-md mx-auto">
-          
-          {/* Header Section */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Roadmap AI Generator
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Create a personalized learning roadmap powered by AI
-            </p>
-            {submissionCount > 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Attempt #{submissionCount}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-between items-center">
+            <div className="text-center flex-1">
+              <h1 className="text-4xl font-bold text-[#5C946E] mb-3">
+                AI Roadmap Generator
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto transition-colors duration-200">
+                Create personalized learning roadmaps powered by artificial intelligence. 
+                Get structured, week-by-week plans tailored to your goals and skill level.
               </p>
-            )}
-          </div>
-
-          {/* Status Messages */}
-          {isProcessing && (
-            <div className="mb-6">
-              <StatusCard
-                icon={Clock}
-                title={generationState === 'submitting' ? 'Processing Request' : 'Generating Roadmap'}
-                message={statusMessage}
-                variant="info"
-                showSpinner={true}
-              />
-            </div>
-          )}
-
-          {isCompleted && (
-            <div className="mb-6">
-              <StatusCard
-                icon={CheckCircle}
-                title="Success!"
-                message="Your roadmap has been generated successfully. Redirecting to workplace..."
-                variant="success"
-              />
-            </div>
-          )}
-
-          {hasError && (
-            <div className="mb-6">
-              <StatusCard
-                icon={AlertCircle}
-                title="Error"
-                message={error}
-                variant="error"
-              />
-            </div>
-          )}
-
-          {/* Main Form */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <div className="space-y-6">
-              
-              {/* Skill Input */}
-              <Input
-                label="Skill to Learn"
-                icon={BookOpen}
-                name="skill"
-                value={formData.skill}
-                onChange={handleInputChange}
-                placeholder="e.g., Python for Data Science, React Development, Digital Marketing"
-                error={formErrors.skill}
-                disabled={isProcessing}
-                required
-              />
-
-              {/* Email Input */}
-              <Input
-                label="Email Address"
-                icon={Mail}
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="your.email@example.com"
-                error={formErrors.email}
-                disabled={isProcessing}
-                required
-              />
-
-              {/* Current Level Select */}
-              <Select
-                label="Current Level"
-                icon={Target}
-                name="level"
-                value={formData.level}
-                onChange={handleInputChange}
-                options={levelOptions}
-                error={formErrors.level}
-                disabled={isProcessing}
-              />
-
-              {/* Learning Goal Select */}
-              <Select
-                label="Learning Goal"
-                icon={Target}
-                name="goal"
-                value={formData.goal}
-                onChange={handleInputChange}
-                options={goalOptions}
-                error={formErrors.goal}
-                disabled={isProcessing}
-              />
-
-              {/* Debug Info (Development only) */}
-              {process.env.NODE_ENV === 'development' && formData.userID && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                  <strong>Debug Info:</strong><br />
-                  User ID: {formData.userID}<br />
-                  State: {generationState}
+              {submissionCount > 0 && (
+                <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-sm bg-[#5C946E] bg-opacity-10 text-[#5C946E]">
+                  <Clock className="w-4 h-4 mr-1" />
+                  Generation Attempt #{submissionCount}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                {!isProcessing && !isCompleted && (
-                  <Button
-                    onClick={handleSubmit}
-                    className="w-full"
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          
+          {/* Left Column - Form */}
+          <div className="lg:col-span-2">
+            {/* Status Messages */}
+            {isProcessing && (
+              <div className="mb-8">
+                <StatusCard
+                  icon={Clock}
+                  title={generationState === 'submitting' ? 'Processing Request' : 'Generating Roadmap'}
+                  message={statusMessage}
+                  variant="info"
+                  showSpinner={true}
+                />
+              </div>
+            )}
+
+            {isCompleted && (
+              <div className="mb-8">
+                <StatusCard
+                  icon={CheckCircle}
+                  title="Success!"
+                  message="Your roadmap has been generated successfully. Redirecting to workplace..."
+                  variant="success"
+                />
+              </div>
+            )}
+
+            {hasError && (
+              <div className="mb-8">
+                <StatusCard
+                  icon={AlertCircle}
+                  title="Error"
+                  message={error}
+                  variant="error"
+                />
+              </div>
+            )}
+
+            {/* Main Form Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 transition-colors duration-300">
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2 transition-colors duration-200">
+                  Create Your Learning Roadmap
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 transition-colors duration-200">
+                  Fill in the details below to generate a personalized learning plan
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* First Row - Skill and Email */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Skill to Learn"
+                    icon={BookOpen}
+                    name="skill"
+                    value={formData.skill}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Python for Data Science, React Development"
+                    error={formErrors.skill}
                     disabled={isProcessing}
-                    size="lg"
-                  >
-                    {isProcessing ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <LoadingSpinner size="sm" />
-                        <span>Generating...</span>
-                      </div>
-                    ) : (
-                      'Generate My Roadmap'
-                    )}
-                  </Button>
-                )}
+                    required
+                  />
 
-                {isProcessing && (
-                  <Button
-                    onClick={cancelGeneration}
-                    variant="secondary"
-                    className="w-full"
-                    size="lg"
-                  >
-                    Cancel
-                  </Button>
-                )}
+                  <Input
+                    label="Email Address"
+                    icon={Mail}
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="your.email@example.com"
+                    error={formErrors.email}
+                    disabled={isProcessing}
+                    required
+                  />
+                </div>
 
-                {(hasError || isCompleted) && (
-                  <div className="space-y-2">
-                    <Button
-                      onClick={resetForm}
-                      className="w-full"
-                      size="lg"
-                    >
-                      Generate New Roadmap
-                    </Button>
-                    
-                    {isCompleted && onSwitchToWorkplace && (
-                      <Button
-                        onClick={onSwitchToWorkplace}
-                        variant="secondary"
-                        className="w-full"
-                      >
-                        View My Roadmap
-                      </Button>
-                    )}
+                {/* Second Row - Level and Goal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Select
+                    label="Current Level"
+                    icon={Target}
+                    name="level"
+                    value={formData.level}
+                    onChange={handleInputChange}
+                    options={levelOptions}
+                    error={formErrors.level}
+                    disabled={isProcessing}
+                  />
+
+                  <Select
+                    label="Learning Goal"
+                    icon={Target}
+                    name="goal"
+                    value={formData.goal}
+                    onChange={handleInputChange}
+                    options={goalOptions}
+                    error={formErrors.goal}
+                    disabled={isProcessing}
+                  />
+                </div>
+
+                {/* Third Row - Weeks */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Duration (Weeks)"
+                    icon={Clock}
+                    type="number"
+                    name="weeks"
+                    value={formData.weeks}
+                    onChange={handleInputChange}
+                    placeholder="8"
+                    min="1"
+                    max="12"
+                    error={formErrors.weeks}
+                    disabled={isProcessing}
+                    required
+                  />
+                </div>
+
+                {/* Debug Info (Development only) */}
+                {formData.userID && (
+                  <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 transition-colors duration-200">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 transition-colors duration-200">
+                      <div className="font-medium mb-1">Debug Information:</div>
+                      <div>User ID: {formData.userID}</div>
+                      <div>State: {generationState}</div>
+                      <div>Theme: {isDarkMode ? 'Dark' : 'Light'}</div>
+                    </div>
                   </div>
                 )}
+
+                {/* Action Buttons */}
+                <div className="pt-6 border-t border-gray-200 dark:border-gray-700 transition-colors duration-200">
+                  <div className="space-y-4">
+                    {!isProcessing && !isCompleted && (
+                      <Button
+                        onClick={handleSubmit}
+                        className="w-full"
+                        disabled={isProcessing}
+                        size="lg"
+                        icon={isProcessing ? null : Zap}
+                      >
+                        {isProcessing ? (
+                          <div className="flex items-center justify-center space-x-2">
+                            <LoadingSpinner size="sm" />
+                            <span>Generating Roadmap...</span>
+                          </div>
+                        ) : (
+                          'Generate My Roadmap'
+                        )}
+                      </Button>
+                    )}
+
+                    {isProcessing && (
+                      <Button
+                        onClick={cancelGeneration}
+                        variant="secondary"
+                        className="w-full"
+                        size="lg"
+                      >
+                        Cancel Generation
+                      </Button>
+                    )}
+
+                    {(hasError || isCompleted) && (
+                      <div className="space-y-3">
+                        <Button
+                          onClick={resetForm}
+                          className="w-full"
+                          size="lg"
+                          icon={Zap}
+                        >
+                          Generate New Roadmap
+                        </Button>
+                        
+                        {isCompleted && onSwitchToWorkplace && (
+                          <Button
+                            onClick={onSwitchToWorkplace}
+                            variant="outline"
+                            className="w-full"
+                            size="lg"
+                            icon={ArrowRight}
+                          >
+                            View My Roadmap
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Tips Section */}
-          {!isProcessing && (
-            <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                💡 Tips for better results:
+          {/* Right Column - Tips and Features */}
+          <div className="space-y-8">
+            
+            {/* Tips Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors duration-300">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center transition-colors duration-200">
+                <Star className="w-5 h-5 text-[#5C946E] mr-2" />
+                Tips for Better Results
               </h3>
-              <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                <li>• Be specific about the skill (e.g., "React for Web Development" vs "Programming")</li>
-                <li>• Choose the level that best matches your current knowledge</li>
-                <li>• Select a goal that aligns with your learning motivation</li>
-                <li>• The generation process may take 1-2 minutes</li>
-              </ul>
+              <div className="space-y-3">
+                <TipItem 
+                  icon={BookOpen}
+                  text="Be specific about the skill (e.g., 'React for Web Development' vs 'Programming')"
+                />
+                <TipItem 
+                  icon={Target}
+                  text="Choose the level that best matches your current knowledge"
+                />
+                <TipItem 
+                  icon={Award}
+                  text="Select a goal that aligns with your learning motivation"
+                />
+                <TipItem 
+                  icon={Clock}
+                  text="Choose 1-12 weeks based on your availability and depth needed"
+                />
+                <TipItem 
+                  icon={Globe}
+                  text="The AI generation process typically takes 1-2 minutes"
+                />
+              </div>
             </div>
-          )}
+
+            {/* What You'll Get Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors duration-300">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center transition-colors duration-200">
+                <Users className="w-5 h-5 text-[#5C946E] mr-2" />
+                What You'll Get
+              </h3>
+              <div className="space-y-4">
+                <FeatureCard
+                  icon={Target}
+                  title="Structured Learning Path"
+                  description="Week-by-week breakdown with clear milestones and progressive difficulty"
+                />
+                <FeatureCard
+                  icon={Globe}
+                  title="Curated Resources"
+                  description="Hand-picked free resources including tutorials, documentation, and practice projects"
+                />
+                <FeatureCard
+                  icon={TrendingUp}
+                  title="Progress Tracking"
+                  description="Built-in tracking system to monitor your learning progress and achievements"
+                />
+                <FeatureCard
+                  icon={Award}
+                  title="Goal-Oriented Tasks"
+                  description="Tasks specifically designed to align with your learning objectives and career goals"
+                />
+              </div>
+            </div>
+
+            {/* Quick Access */}
+            {onSwitchToWorkplace && (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 text-center transition-colors duration-300">
+                <Users className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Already have a roadmap?
+                </h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 transition-colors duration-200">
+                  Access your existing learning workspace
+                </p>
+                <Button
+                  onClick={onSwitchToWorkplace}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                >
+                  Go to Workplace
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-sm text-gray-500 dark:text-gray-400 transition-colors duration-200">
+            <p>Powered by AI • Generate unlimited roadmaps • Track your progress</p>
+          </div>
         </div>
       </div>
     </div>

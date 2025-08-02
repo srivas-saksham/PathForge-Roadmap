@@ -129,18 +129,18 @@ const Workplace = ({
     }
   }, [roadmapData, userID, isLoading]);
 
-  // Auto-refresh data periodically (optional)
-  useEffect(() => {
-    if (!localRoadmapData || !userID) return;
+//   // Auto-refresh data periodically (optional)
+//   useEffect(() => {
+//     if (!localRoadmapData || !userID) return;
 
-    const interval = setInterval(() => {
-      if (loadingState === 'idle') {
-        refreshData(true); // Silent refresh
-      }
-    }, 30000); // Refresh every 30 seconds
+//     const interval = setInterval(() => {
+//       if (loadingState === 'idle') {
+//         refreshData(true); // Silent refresh
+//       }
+//     }, 30000); // Refresh every 30 seconds
 
-    return () => clearInterval(interval);
-  }, [localRoadmapData, userID, loadingState]);
+//     return () => clearInterval(interval);
+//   }, [localRoadmapData, userID, loadingState]);
 
   // Fetch roadmap data
   const fetchRoadmapData = async (silent = false) => {
