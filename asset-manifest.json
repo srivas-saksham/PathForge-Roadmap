@@ -1,13 +1,14 @@
 {
   "files": {
-    "main.css": "/PathForge-Roapmap-AI-Agent/static/css/main.a2720fce.css",
-    "main.js": "/PathForge-Roapmap-AI-Agent/static/js/main.728ed487.js",
+    "main.css": "/PathForge-Roapmap-AI-Agent/static/css/main.902b5df8.css",
+    "main.js": "/PathForge-Roapmap-AI-Agent/static/js/main.3b8cd778.js",
+    "static/media/logo-trans.png": "/PathForge-Roapmap-AI-Agent/static/media/logo-trans.ad7ec4733ce83ba310e2.png",
     "index.html": "/PathForge-Roapmap-AI-Agent/index.html",
-    "main.a2720fce.css.map": "/PathForge-Roapmap-AI-Agent/static/css/main.a2720fce.css.map",
-    "main.728ed487.js.map": "/PathForge-Roapmap-AI-Agent/static/js/main.728ed487.js.map"
+    "main.902b5df8.css.map": "/PathForge-Roapmap-AI-Agent/static/css/main.902b5df8.css.map",
+    "main.3b8cd778.js.map": "/PathForge-Roapmap-AI-Agent/static/js/main.3b8cd778.js.map"
   },
   "entrypoints": [
-    "static/css/main.a2720fce.css",
-    "static/js/main.728ed487.js"
+    "static/css/main.902b5df8.css",
+    "static/js/main.3b8cd778.js"
   ]
 }
