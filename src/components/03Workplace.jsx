@@ -21,6 +21,7 @@ import {
   WifiOff
 } from 'lucide-react';
 import RoadmapService from '../services/RoadmapService';
+import RoadmapWarningModal from './06RoadmapWarningModal';
 
 // --- ERROR TYPES (MATCHING MAINAPP) ---
 const ERROR_TYPES = {
@@ -330,6 +331,8 @@ const Workplace = ({
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'completed'
   const [selectedWeek, setSelectedWeek] = useState('all'); // 'all', or week number
   const [localError, setLocalError] = useState(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [hideWarningPreference, setHideWarningPreference] = useState(false);
 
   // Initialize and update data
   useEffect(() => {
@@ -346,6 +349,14 @@ const Workplace = ({
       setLocalError(null);
     }
   }, [error]);
+
+  // Initialize "don't show again" preference from localStorage
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('hideRoadmapWarning');
+    if (savedPreference === 'true') {
+      setHideWarningPreference(true);
+    }
+  }, []);
 
   // Handle task status toggle
   const handleToggleTaskStatus = async (task) => {
@@ -498,6 +509,45 @@ const Workplace = ({
     }
   };
 
+  // Check if should show warning modal
+  const shouldShowWarning = () => {
+    return localRoadmapData && !hideWarningPreference;
+  };
+
+  // Handle create new roadmap with warning check
+  const handleCreateNewRoadmap = () => {
+    if (shouldShowWarning()) {
+      setShowWarningModal(true);
+      return;
+    }
+    
+    // Proceed directly if no warning needed
+    if (onCreateNewRoadmap) {
+      onCreateNewRoadmap();
+    }
+  };
+
+  // Modal handlers
+  const handleModalProceed = () => {
+    setShowWarningModal(false);
+    if (onCreateNewRoadmap) {
+      onCreateNewRoadmap();
+    }
+  };
+
+  const handleModalCancel = () => {
+    setShowWarningModal(false);
+  };
+
+  const handleModalClose = () => {
+    setShowWarningModal(false);
+  };
+
+  const handleDontShowAgain = (hide) => {
+    setHideWarningPreference(hide);
+    localStorage.setItem('hideRoadmapWarning', hide.toString());
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -544,7 +594,7 @@ const Workplace = ({
                 {isLoading ? 'Retrying...' : 'Try Again'}
               </Button>
               {onCreateNewRoadmap && (
-                <Button variant="secondary" onClick={onCreateNewRoadmap}>
+                <Button variant="secondary" onClick={handleCreateNewRoadmap}>
                   Create New Roadmap
                 </Button>
               )}
@@ -572,7 +622,7 @@ const Workplace = ({
               }
             </p>
             {onCreateNewRoadmap && (
-              <Button onClick={onCreateNewRoadmap} size="lg">
+              <Button onClick={handleCreateNewRoadmap} size="lg">
                 Create Your First Roadmap
               </Button>
             )}
@@ -584,6 +634,15 @@ const Workplace = ({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
+      {/* Add the Warning Modal */}
+      <RoadmapWarningModal
+        isOpen={showWarningModal}
+        onClose={handleModalClose}
+        onProceed={handleModalProceed}
+        onCancel={handleModalCancel}
+        onDontShowAgain={handleDontShowAgain}
+      />
+
       {/* Enhanced Invalid User Modal */}
       <InvalidUserModal
         isOpen={showInvalidUserModal}
@@ -955,7 +1014,7 @@ const Workplace = ({
                           Refresh Data
                         </Button>
                         {onCreateNewRoadmap && (
-                          <Button variant="secondary" onClick={onCreateNewRoadmap}>
+                          <Button variant="secondary" onClick={handleCreateNewRoadmap}>
                             Create New Roadmap
                           </Button>
                         )}
@@ -998,7 +1057,7 @@ const Workplace = ({
               </Button>
               
               {onCreateNewRoadmap && (
-                <Button onClick={onCreateNewRoadmap} className="flex items-center space-x-2">
+                <Button onClick={handleCreateNewRoadmap} className="flex items-center space-x-2">
                   <Target className="h-5 w-5" />
                   <span>Create New Roadmap</span>
                 </Button>

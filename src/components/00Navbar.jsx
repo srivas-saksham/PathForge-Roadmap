@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Home, 
   Briefcase, 
@@ -23,10 +24,13 @@ import {
   Monitor,
   Zap,
   Target,
-  TrendingUp
+  TrendingUp,
+  Edit2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
-// --- THEME CONTEXT ---
+// --- THEME CONTEXT WITH LOCALSTORAGE ---
 const ThemeContext = createContext({
   isDarkMode: false,
   toggleTheme: () => {},
@@ -34,8 +38,23 @@ const ThemeContext = createContext({
 });
 
 export const ThemeProvider = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark
+  // Initialize theme from localStorage or default to dark
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined') {
+      try {
+        const savedTheme = localStorage.getItem('pathforge-theme');
+        if (savedTheme !== null) {
+          return savedTheme === 'dark';
+        }
+      } catch (error) {
+        console.warn('LocalStorage not available, using default theme');
+      }
+    }
+    return true; // Default to dark theme
+  });
 
+  // Update DOM classes and save to localStorage when theme changes
   useEffect(() => {
     const root = document.documentElement;
     
@@ -43,6 +62,15 @@ export const ThemeProvider = ({ children }) => {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
+    }
+
+    // Save theme preference to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('pathforge-theme', isDarkMode ? 'dark' : 'light');
+      } catch (error) {
+        console.warn('Failed to save theme to localStorage:', error);
+      }
     }
   }, [isDarkMode]);
 
@@ -187,20 +215,102 @@ const StatusIndicator = ({
   );
 };
 
-// --- PROFILE DROPDOWN COMPONENT ---
-const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID }) => {
+const ClearSessionWarning = ({ onConfirm, onCancel }) => {
+  const handleConfirm = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🔘 Modal Confirm button clicked');
+    if (onConfirm && typeof onConfirm === 'function') {
+      onConfirm();
+    }
+  };
+
+  const handleCancel = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🔘 Modal Cancel button clicked');
+    if (onCancel && typeof onCancel === 'function') {
+      onCancel();
+    }
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      handleCancel(e);
+    }
+  };
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-red-200 dark:border-red-800 p-6 max-w-md w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start space-x-3">
+          <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-red-800 dark:text-red-200 text-lg">
+              Do you want to Log Out?
+            </h3>
+            <p className="text-red-600 dark:text-red-300 text-sm mt-2">
+              You can log-in again at any point using your user ID only. 
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end space-x-3 mt-6">
+          <button 
+            type="button"
+            onClick={handleCancel}
+            className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Cancel
+          </button>
+          <button 
+            type="button"
+            onClick={handleConfirm}
+            className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            Log Out
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID, username, onUsernameUpdate, onClearSession }) => {
   const dropdownRef = useRef(null);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(username || '');
+  const [showUserID, setShowUserID] = useState(false);
+  const [showClearWarning, setShowClearWarning] = useState(false);
+
+  // Update editingUsername when username prop changes
+  useEffect(() => {
+    setEditingUsername(username || '');
+  }, [username]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        onClose();
+        // Don't close if the clear warning modal is open
+        if (!showClearWarning) {
+          onClose();
+        }
       }
     };
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (showClearWarning) {
+          setShowClearWarning(false);
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -213,7 +323,29 @@ const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID }) => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showClearWarning]);
+
+  // Handler functions for username editing
+  const handleSaveUsername = async () => {
+    if (editingUsername.trim() && editingUsername.trim() !== username) {
+      try {
+        if (onUsernameUpdate) {
+          await onUsernameUpdate(editingUsername.trim());
+        }
+        setIsEditingUsername(false);
+      } catch (error) {
+        console.error('Failed to update username:', error);
+        // You can add error handling here
+      }
+    } else {
+      setIsEditingUsername(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUsername(username || '');
+    setIsEditingUsername(false);
+  };
 
   if (!isOpen) return null;
 
@@ -222,11 +354,6 @@ const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID }) => {
     if (!userID) return 'AI';
     const parts = userID.split('_');
     return parts[0] ? parts[0].substring(0, 2).toUpperCase() : 'AI';
-  };
-
-  const getDisplayName = () => {
-    if (!userID) return 'AI User';
-    return `User ${userID.split('_')[1] || 'Anonymous'}`;
   };
 
   return (
@@ -241,37 +368,143 @@ const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID }) => {
             <span className="text-white font-semibold text-xs">{getUserInitials()}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-gray-800 dark:text-white font-medium text-sm truncate transition-colors duration-200">{getDisplayName()}</p>
-            <p className="text-gray-500 dark:text-gray-400 text-xs truncate transition-colors duration-200">
-              {userID ? `ID: ${userID.substring(0, 12)}...` : 'Guest User'}
-            </p>
+            <div className="flex items-center space-x-2">
+              <p className="text-gray-800 dark:text-white font-medium text-sm truncate transition-colors duration-200">
+                {username || 'Guest User'}
+              </p>
+              {username && (
+                <button
+                  onClick={() => setIsEditingUsername(true)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  title="Edit username"
+                >
+                  <Edit2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <p className="text-gray-500 dark:text-gray-400 text-xs truncate transition-colors duration-200 flex-1">
+                {userID ? (
+                  <>
+                    ID: {showUserID ? userID : '•'.repeat(Math.min(userID.length, 24))}
+                  </>
+                ) : (
+                  'Guest User'
+                )}
+              </p>
+              {userID && (
+                <button
+                  onClick={() => setShowUserID(!showUserID)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                  title={showUserID ? 'Hide User ID' : 'Show User ID'}
+                >
+                  {showUserID ? (
+                    <EyeOff className="h-3 w-3" />
+                  ) : (
+                    <Eye className="h-3 w-3" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        
+        {/* Inline Username Editor */}
+        {isEditingUsername && (
+          <div className="mt-3 space-y-2">
+            <input
+              type="text"
+              value={editingUsername}
+              onChange={(e) => setEditingUsername(e.target.value)}
+              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+              placeholder="Enter username"
+              maxLength={20}
+              autoFocus
+            />
+            <div className="flex space-x-2">
+              <button
+                onClick={handleSaveUsername}
+                className="px-2 py-1 text-xs bg-[#5C946E] text-white rounded hover:bg-[#4a7d59] transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Menu Items */}
       <div className="py-1">
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors duration-150 flex items-center space-x-3">
-          <User className="h-4 w-4 flex-shrink-0" />
-          <span>Profile Settings</span>
-        </button>
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors duration-150 flex items-center space-x-3">
-          <Settings className="h-4 w-4 flex-shrink-0" />
-          <span>Preferences</span>
-        </button>
-        <button className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors duration-150 flex items-center space-x-3">
-          <HelpCircle className="h-4 w-4 flex-shrink-0" />
-          <span>Help & Support</span>
-        </button>
+        <div className="w-full px-4 py-3 text-left text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed transition-colors duration-150 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <User className="h-4 w-4 flex-shrink-0" />
+            <span>Profile Settings</span>
+          </div>
+          <div className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded transition-colors duration-200">Soon</div>
+        </div>
+        <div className="w-full px-4 py-3 text-left text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed transition-colors duration-150 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Settings className="h-4 w-4 flex-shrink-0" />
+            <span>Preferences</span>
+          </div>
+          <div className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded transition-colors duration-200">Soon</div>
+        </div>
+        <div className="w-full px-4 py-3 text-left text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed transition-colors duration-150 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <HelpCircle className="h-4 w-4 flex-shrink-0" />
+            <span>Help & Support</span>
+          </div>
+          <div className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded transition-colors duration-200">Soon</div>
+        </div>
         <hr className="my-1 border-gray-200 dark:border-gray-700" />
-        <button className="w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-150 flex items-center space-x-3">
-          <LogOut className="h-4 w-4 flex-shrink-0" />
-          <span>Clear Session</span>
-        </button>
-      </div>
-    </div>
-  );
-};
+        <div className="relative">
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('🔘 Logout button clicked');
+              setShowClearWarning(true);
+            }}
+            className="w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-150 flex items-center space-x-3"
+          >
+            <LogOut className="h-4 w-4 flex-shrink-0" />
+            <span>Log Out</span>
+          </button>
+        </div>
+
+        {/* Warning Modal - Move outside of the dropdown div */}
+        {showClearWarning && (
+          <ClearSessionWarning 
+            onConfirm={() => {
+              console.log('✅ User confirmed logout');
+              setShowClearWarning(false);
+              onClose(); // Close dropdown first
+              
+              // Call the actual clear session function from MainApp
+              if (onClearSession && typeof onClearSession === 'function') {
+                console.log('🔄 Calling onClearSession...');
+                onClearSession();
+              } else {
+                console.error('❌ onClearSession is not a function:', onClearSession);
+              }
+            }}
+            onCancel={() => {
+              console.log('❌ User cancelled logout');
+              setShowClearWarning(false);
+              // Keep dropdown open so user can try other actions
+            }}
+          />
+        )}
+              </div>
+            </div>
+          );
+        };
 
 // --- MAIN NAVBAR/SIDEBAR COMPONENT ---
 const Navbar = ({ 
@@ -284,6 +517,9 @@ const Navbar = ({
     { id: 'workplace', label: 'Workplace', description: 'Learning workspace' }
   ],
   userID = null,
+  username = null,
+  onUsernameUpdate = null,
+  onClearSession = null,
   connectionStatus = 'online',
   lastUpdate = null,
   hasRoadmap = false,
@@ -336,7 +572,6 @@ const Navbar = ({
     if (hasRoadmap) return 'Active Learner';
     return 'Getting Started';
   };
-
   return (
     <ThemeProvider>
       <div className={`${isExpanded ? 'w-64' : 'w-16'} bg-[#c7dccd] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out flex flex-col h-screen flex-shrink-0 sticky top-0`}>
@@ -473,7 +708,7 @@ const Navbar = ({
               {isExpanded && (
                 <>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{getDisplayName()}</p>
+                    <p className="text-sm font-medium truncate">{username || 'Guest User'}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate transition-colors duration-200">{getUserRole()}</p>
                   </div>
                   <div className="flex-shrink-0">
@@ -491,6 +726,9 @@ const Navbar = ({
               onClose={() => setIsProfileDropdownOpen(false)}
               isExpanded={isExpanded}
               userID={userID}
+              username={username}
+              onUsernameUpdate={onUsernameUpdate}
+              onClearSession={onClearSession} 
             />
           </div>
 
@@ -498,7 +736,7 @@ const Navbar = ({
           {isExpanded && (
             <div className="mt-3 px-3">
               <div className="text-xs text-gray-500 dark:text-gray-600 text-center transition-colors duration-200">
-                PathForge v2.1.0 • Theme: {isDarkMode ? 'Dark' : 'Light'}
+                PathForge v2.1.0 • IBM Project
               </div>
             </div>
           )}

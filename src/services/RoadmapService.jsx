@@ -12,6 +12,7 @@ const CONFIG = {
   // Airtable configuration for storing and retrieving roadmap data
   AIRTABLE_BASE_ID: 'appQjqTJK6ZBf7lU0',
   AIRTABLE_PROGRESS_TABLE: 'Progress',
+  AIRTABLE_USER_TABLE: 'Users',
   AIRTABLE_API_KEY: 'patPmofh3T03hQTgW.607bbdc2898f5cc93c1314a406ee95f05faf6f3755d886a313fd424668d65c42',
   
   // Polling configuration for checking roadmap generation status
@@ -93,6 +94,252 @@ class RoadmapService {
     } catch (error) {
       console.error('❌ Planner submission failed:', error);
       throw new Error(`Failed to submit to planner: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create a new user record in Airtable User table
+   * @param {string} userID - Unique user identifier
+   * @param {string} username - Username to save
+   * @returns {Promise<Object>} Created Airtable record
+   * @throws {Error} If the creation fails
+   */
+  static async createUserRecord(userID, username) {
+    console.log('👤 Creating user record:', { userID, username });
+    
+    try {
+      // Validate inputs
+      if (!userID || !username) {
+        throw new Error('Missing required parameters: userID or username');
+      }
+
+      // Construct Airtable API URL for User table
+      const url = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_USER_TABLE}`;
+      
+      // Make POST request to create the record
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fields: {
+            "User ID": userID,
+            "UserName": username,
+          }
+        })
+      });
+
+      // Check if request was successful
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Airtable user creation error:', errorText);
+        throw new Error(`Failed to create user: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      // Parse and return the created record
+      const result = await response.json();
+      console.log('✅ User created successfully:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Failed to create user record:', error);
+      throw new Error(`Failed to create user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update username for an existing user in Airtable
+   * @param {string} userID - Unique user identifier
+   * @param {string} newUsername - New username to set
+   * @returns {Promise<Object>} Updated Airtable record
+   * @throws {Error} If the update fails
+   */
+  static async updateUsername(userID, newUsername) {
+    console.log('✏️ Updating username:', { userID, newUsername });
+    
+    try {
+      // Validate inputs
+      if (!userID || !newUsername) {
+        throw new Error('Missing required parameters: userID or newUsername');
+      }
+
+      // First, find the user record by filtering with User ID
+      const baseUrl = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_USER_TABLE}`;
+      const params = new URLSearchParams();
+      params.append('filterByFormula', `{User ID} = '${userID}'`);
+      params.append('maxRecords', '1');
+      
+      const fetchUrl = `${baseUrl}?${params.toString()}`;
+      
+      const fetchResponse = await fetch(fetchUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`
+        }
+      });
+
+      if (!fetchResponse.ok) {
+        const errorText = await fetchResponse.text();
+        console.error('❌ Failed to find user record:', errorText);
+        throw new Error(`Failed to find user: ${fetchResponse.status} ${fetchResponse.statusText}`);
+      }
+
+      const fetchData = await fetchResponse.json();
+      
+      if (!fetchData.records || fetchData.records.length === 0) {
+        throw new Error('User not found. Cannot update username for non-existent user.');
+      }
+
+      const recordId = fetchData.records[0].id;
+      console.log('📝 Found user record ID:', recordId);
+
+      // Now update the username using the record ID
+      const updateUrl = `${baseUrl}/${recordId}`;
+      
+      const updateResponse = await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fields: {
+            UserName: newUsername,
+          }
+        })
+      });
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error('❌ Airtable username update error:', errorText);
+        throw new Error(`Failed to update username: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`);
+      }
+
+      const result = await updateResponse.json();
+      console.log('✅ Username updated successfully:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Failed to update username:', error);
+      throw new Error(`Failed to update username: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update all "New User" entries to actual username
+   * Specifically designed to replace "New User" placeholder with real names
+   * @param {string} userID - Unique user identifier
+   * @param {string} actualUsername - The real username to replace "New User" with
+   * @returns {Promise<Object>} Updated Airtable record
+   * @throws {Error} If the update fails
+   */
+  static async updateNewUserToActualName(userID, actualUsername) {
+    console.log('🔄 Replacing "New User" with actual name:', { userID, actualUsername });
+    
+    try {
+      // Validate inputs
+      if (!userID || !actualUsername) {
+        throw new Error('Missing required parameters: userID or actualUsername');
+      }
+
+      // Trim the username to avoid whitespace issues
+      const cleanUsername = actualUsername.trim();
+      
+      if (cleanUsername.length === 0) {
+        throw new Error('Username cannot be empty or just whitespace');
+      }
+
+      // First, verify the user exists and currently has "New User"
+      const userProfile = await this.fetchUserProfile(userID);
+      
+      if (!userProfile) {
+        throw new Error('User not found. Cannot update username for non-existent user.');
+      }
+
+      console.log('👤 Current user profile:', userProfile);
+      
+      // Check if current username is "New User" (case-insensitive check)
+      const currentUsername = userProfile.username || '';
+      if (currentUsername.toLowerCase() !== 'new user') {
+        console.log('ℹ️ Username is not "New User", updating anyway:', currentUsername);
+      }
+
+      // Update the username
+      const result = await this.updateUsername(userID, cleanUsername);
+      console.log('✅ Successfully updated "New User" to:', cleanUsername);
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Failed to update New User to actual name:', error);
+      throw new Error(`Failed to update username: ${error.message}`);
+    }
+  }
+
+  /**
+   * Fetch user profile data from Airtable User table
+   * @param {string} userID - Unique user identifier
+   * @returns {Promise<Object|null>} User profile data or null if not found
+   * @throws {Error} If the fetch operation fails
+   */
+  static async fetchUserProfile(userID) {
+    console.log('👤 Fetching user profile for:', userID);
+    
+    try {
+      // Validate userID
+      if (!userID) {
+        throw new Error('UserID is required');
+      }
+
+      // Build URL with filter parameters
+      const baseUrl = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_USER_TABLE}`;
+      const params = new URLSearchParams();
+      
+      // Add filter formula for UserID
+      params.append('filterByFormula', `{User ID} = '${userID}'`);
+      params.append('maxRecords', '1'); // We only expect one user record
+      
+      const url = `${baseUrl}?${params.toString()}`;
+      console.log('📡 Fetching user from:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Airtable user fetch error:', errorText);
+        throw new Error(`Airtable API failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('📋 User fetch response:', data);
+
+      // Return null if no user found
+      if (!data.records || data.records.length === 0) {
+        console.log('👤 No user found for userID:', userID);
+        return null;
+      }
+
+      // Transform the first record to our application format
+      const record = data.records[0];
+      const userProfile = {
+        recordId: record.id,
+        userID: record.fields["User ID"],
+        username: record.fields.UserName
+      };
+
+      console.log('✅ User profile fetched:', userProfile);
+      return userProfile;
+
+    } catch (error) {
+      console.error('❌ Failed to fetch user profile:', error);
+      throw new Error(`Failed to fetch user profile: ${error.message}`);
     }
   }
 

@@ -4,6 +4,7 @@ import Home from './02Home';
 import Workplace from './03Workplace';
 import Navbar from './00Navbar';
 import RoadmapService from '../services/RoadmapService';
+import UserSetupModal from './05UserSetupModal';
 
 // --- UI COMPONENTS ---
 const StatusCard = ({ icon: Icon, title, message, variant = 'info', className = '', showSpinner = false }) => {
@@ -88,6 +89,9 @@ const MainApp = () => {
   const [currentUserID, setCurrentUserID] = useState(null);
   const [currentFormData, setCurrentFormData] = useState(null);
   const [sessionStartTime] = useState(new Date());
+  const [userProfile, setUserProfile] = useState(null);
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(true);
+  const [showUserSetupModal, setShowUserSetupModal] = useState(false);
 
   // === ROADMAP DATA STATE ===
   const [roadmapData, setRoadmapData] = useState(null);
@@ -145,6 +149,11 @@ const MainApp = () => {
     console.log('🚀 Initializing MainApp...');
     
     try {
+      // FORCE RESET: Always start as first time user by default
+      setIsFirstTimeUser(true);
+      setUserProfile(null);
+      setShowUserSetupModal(false);
+      
       // Check if there's existing session data in sessionStorage (fallback for navigation)
       const savedUserID = sessionStorage.getItem('currentUserID');
       const savedFormData = sessionStorage.getItem('currentFormData');
@@ -152,6 +161,9 @@ const MainApp = () => {
       if (savedUserID) {
         console.log('📱 Restored session:', savedUserID);
         setCurrentUserID(savedUserID);
+        
+        // Check user profile - this will update isFirstTimeUser appropriately
+        await checkUserProfile(savedUserID);
         
         if (savedFormData) {
           try {
@@ -167,6 +179,11 @@ const MainApp = () => {
 
         // Try to load existing roadmap data
         await loadRoadmapData(savedUserID, true); // Silent load
+      } else {
+        // No saved user - definitely first time user
+        console.log('👤 No saved user - setting as first time user');
+        setIsFirstTimeUser(true);
+        setUserProfile(null);
       }
 
       setAppState('ready');
@@ -447,7 +464,7 @@ const MainApp = () => {
   }, []);
 
   // === ROADMAP GENERATION HANDLERS ===
-  const handleRoadmapGenerated = useCallback((formData, generatedRoadmapData = null) => {
+  const handleRoadmapGenerated = useCallback(async (formData, generatedRoadmapData = null) => {
     console.log('🎯 Roadmap generation initiated:', formData);
     
     // Clear any pending overwrite data
@@ -461,6 +478,9 @@ const MainApp = () => {
     setRoadmapError(null);
     setRoadmapErrorType(null);
     
+    // Check user profile status
+    await checkUserProfile(formData.userID);
+    
     // Save to sessionStorage for navigation persistence
     sessionStorage.setItem('currentUserID', formData.userID);
     sessionStorage.setItem('currentFormData', JSON.stringify(formData));
@@ -471,6 +491,12 @@ const MainApp = () => {
       setRoadmapData(generatedRoadmapData);
       setIsGeneratingRoadmap(false);
       setLastDataRefresh(new Date());
+      
+      // Check if this is a first-time user and show username setup modal
+      if (isFirstTimeUser) {
+        console.log('🎯 First-time user detected - showing username setup modal');
+        setShowUserSetupModal(true);
+      }
     }
   }, []);
 
@@ -478,7 +504,7 @@ const MainApp = () => {
     setGenerationProgress(progress);
   }, []);
 
-  const handleGenerationComplete = useCallback((finalRoadmapData) => {
+  const handleGenerationComplete = useCallback(async (finalRoadmapData) => {
     console.log('🎉 Roadmap generation completed!', finalRoadmapData);
     setRoadmapData(finalRoadmapData);
     setIsGeneratingRoadmap(false);
@@ -487,7 +513,13 @@ const MainApp = () => {
     setRoadmapError(null);
     setRoadmapErrorType(null);
     setShowInvalidUserModal(false);
-  }, []);
+    
+    // Check if this is a first-time user and show username setup modal
+    if (currentUserID && isFirstTimeUser) {
+      console.log('🎯 First-time user detected - showing username setup modal');
+      setShowUserSetupModal(true);
+    }
+  }, [currentUserID, isFirstTimeUser]);
 
   const handleGenerationError = useCallback((error) => {
     console.error('❌ Roadmap generation failed:', error);
@@ -562,6 +594,44 @@ const MainApp = () => {
     setAppState('ready');
   }, [handleCreateNewRoadmap]);
 
+  // === FORCE RESET FIRST TIME USER ===
+  const forceResetToFirstTimeUser = useCallback(() => {
+    console.log('🔄 Force resetting to first time user');
+    
+    // Clear all user-related state
+    setIsFirstTimeUser(true);
+    setUserProfile(null);
+    setShowUserSetupModal(false);
+    
+    // Clear storage
+    sessionStorage.removeItem('currentUserID');
+    sessionStorage.removeItem('currentFormData');
+    sessionStorage.removeItem('userProfile');
+    sessionStorage.removeItem('isFirstTimeUser');
+    
+    localStorage.removeItem('currentUserID');
+    localStorage.removeItem('currentFormData');
+    localStorage.removeItem('userProfile');
+    localStorage.removeItem('isFirstTimeUser');
+    
+    // Clear roadmap data
+    setRoadmapData(null);
+    setCurrentUserID(null);
+    setCurrentFormData(null);
+    setIsGeneratingRoadmap(false);
+    setGenerationProgress('');
+    setRoadmapError(null);
+    setRoadmapErrorType(null);
+    setIsRoadmapLoading(false);
+    setPendingOverwriteData(null);
+    setShowInvalidUserModal(false);
+    
+    console.log('✅ Reset to first time user completed');
+    
+    // Navigate to home
+    switchToHome();
+  }, [switchToHome]);
+
   // === UTILITY METHODS ===
   const hasExistingRoadmap = useCallback(() => {
     return !!roadmapData && !isGeneratingRoadmap;
@@ -570,6 +640,153 @@ const MainApp = () => {
   const shouldShowWorkplaceData = useCallback(() => {
     return roadmapData && !isGeneratingRoadmap;
   }, [roadmapData, isGeneratingRoadmap]);
+
+  // === USERNAME MANAGEMENT ===
+  const checkUserProfile = async (userID) => {
+    try {
+      console.log('👤 Checking user profile for:', userID);
+      
+      // Always start by assuming first time user
+      setIsFirstTimeUser(true);
+      setUserProfile(null);
+      
+      const profile = await RoadmapService.fetchUserProfile(userID);
+      
+      if (profile && profile.username && profile.username.trim() !== '' && profile.username !== 'New User') {
+        console.log('✅ Existing user profile found:', profile);
+        setUserProfile(profile);
+        setIsFirstTimeUser(false);
+        return profile;
+      } else if (profile && (profile.username === 'New User' || !profile.username)) {
+        console.log('👤 User found but with "New User" placeholder - treating as first time user');
+        setUserProfile(profile);
+        setIsFirstTimeUser(true);
+        return profile;
+      } else {
+        console.log('👤 No user profile found - confirmed first time user');
+        setIsFirstTimeUser(true);
+        setUserProfile(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Failed to check user profile:', error);
+      // Always default to first time user on error
+      console.log('👤 Error checking profile - defaulting to first time user');
+      setIsFirstTimeUser(true);
+      setUserProfile(null);
+      return null;
+    }
+  };
+
+  const handleUsernameSetup = async (username) => {
+    try {
+      console.log('👤 Setting up username:', username);
+      
+      if (!currentUserID) {
+        throw new Error('No current user ID available');
+      }
+
+      // ✅ UPDATE EXISTING "New User" RECORD INSTEAD OF CREATING NEW ONE
+      const updatedRecord = await RoadmapService.updateNewUserToActualName(currentUserID, username);
+      
+      // Update local state
+      const newProfile = {
+        recordId: updatedRecord.id,
+        userID: currentUserID,
+        username: username,
+      };
+      
+      setUserProfile(newProfile);
+      setIsFirstTimeUser(false);
+      setShowUserSetupModal(false);
+      
+      console.log('✅ Username setup completed:', newProfile);
+      return newProfile;
+      
+    } catch (error) {
+      console.error('❌ Failed to setup username:', error);
+      throw new Error(`Failed to save username: ${error.message}`);
+    }
+  };
+
+  const handleUsernameUpdate = async (newUsername) => {
+    try {
+      console.log('✏️ Updating username to:', newUsername);
+      
+      if (!currentUserID) {
+        throw new Error('No current user ID available');
+      }
+
+      // Update username in Airtable
+      const updatedRecord = await RoadmapService.updateUsername(currentUserID, newUsername);
+      
+      // Update local state
+      const updatedProfile = {
+        ...userProfile,
+        username: newUsername,
+      };
+      
+      setUserProfile(updatedProfile);
+      
+      console.log('✅ Username updated successfully:', updatedProfile);
+      return updatedProfile;
+      
+    } catch (error) {
+      console.error('❌ Failed to update username:', error);
+      throw new Error(`Failed to update username: ${error.message}`);
+    }
+  };
+
+  const handleClearSession = useCallback(() => {
+    console.log('🔄 Clearing complete session data - LOGOUT');
+    console.log('📝 handleClearSession called');
+    
+    try {
+      // Clear ALL localStorage items (not just pathforge ones)
+      localStorage.clear();
+      console.log('🗑️ localStorage cleared');
+      
+      // Clear all sessionStorage
+      sessionStorage.clear();
+      console.log('🗑️ sessionStorage cleared');
+      
+      // Reset all React states to initial values
+      setActiveRoute('home');
+      setPreviousRoute(null);
+      setCurrentUserID(null);
+      setCurrentFormData(null);
+      setUserProfile(null);
+      setIsFirstTimeUser(true);
+      setShowUserSetupModal(false);
+      setRoadmapData(null);
+      setIsRoadmapLoading(false);
+      setRoadmapError(null);
+      setRoadmapErrorType(null);
+      setAppState('ready');
+      setConnectionStatus(navigator.onLine ? 'online' : 'offline');
+      setLastDataRefresh(new Date());
+      setIsGeneratingRoadmap(false);
+      setGenerationProgress('');
+      setPendingOverwriteData(null);
+      setShowInvalidUserModal(false);
+      setModalMessage('');
+      setModalType(ERROR_TYPES.UNKNOWN_ERROR);
+      
+      // Clear URL hash
+      window.location.hash = 'home';
+      
+      console.log('✅ Session cleared successfully - user logged out');
+      
+      // Force a small delay to ensure all state updates are processed
+      setTimeout(() => {
+        console.log('🔄 Post-logout state verification complete');
+      }, 100);
+      
+    } catch (error) {
+      console.error('❌ Error during session clear:', error);
+    }
+  }, []);
+
 
   // === PAGE REFRESH DETECTION ===
   const isPageRefresh = () => {
@@ -721,6 +938,9 @@ const MainApp = () => {
         onTabChange={handleRouteChange}
         tabs={NAVIGATION_TABS}
         userID={currentUserID}
+        username={userProfile?.username}
+        onUsernameUpdate={handleUsernameUpdate}
+        onClearSession={handleClearSession}
         connectionStatus={connectionStatus}
         lastUpdate={lastDataRefresh}
         hasRoadmap={!!roadmapData}
@@ -782,6 +1002,17 @@ const MainApp = () => {
           {renderActiveComponent()}
         </main>
 
+        {/* User Setup Modal */}
+        {showUserSetupModal && (
+          <UserSetupModal
+            isOpen={showUserSetupModal}
+            userID={currentUserID}
+            onSave={handleUsernameSetup}
+            onSkip={() => setShowUserSetupModal(false)}
+            onClose={() => setShowUserSetupModal(false)}
+          />
+        )}
+
         {/* Debug Info (Development only) */}
         {process.env.NODE_ENV === 'development' && (
           <div className="fixed bottom-4 right-4 bg-black/80 text-white text-xs p-3 rounded-lg max-w-sm z-50">
@@ -798,6 +1029,17 @@ const MainApp = () => {
               <div><strong>Modal Type:</strong> {modalType}</div>
               <div><strong>Pending Overwrite:</strong> {pendingOverwriteData ? 'Yes' : 'No'}</div>
               <div><strong>Page Refresh:</strong> {isPageRefresh() ? 'Yes' : 'No'}</div>
+              <div><strong>User Profile:</strong> {userProfile?.username || 'None'}</div>
+              <div><strong>First Time:</strong> {isFirstTimeUser ? 'Yes' : 'No'}</div>
+              <div><strong>Setup Modal:</strong> {showUserSetupModal ? 'Yes' : 'No'}</div>
+
+              {/* Debug Reset Button */}
+              <button
+                onClick={forceResetToFirstTimeUser}
+                className="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded w-full"
+              >
+                🔄 Reset to First Time User
+              </button>
             </div>
           </div>
         )}
