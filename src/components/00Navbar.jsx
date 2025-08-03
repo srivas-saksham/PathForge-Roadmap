@@ -7,7 +7,8 @@ import {
   FileText, 
   Settings, 
   User, 
-  HelpCircle, 
+  HelpCircle,
+  LogIn, 
   LogOut, 
   ChevronLeft, 
   ChevronRight, 
@@ -30,6 +31,7 @@ import {
   EyeOff
 } from 'lucide-react';
 
+import logo from '../assets/logo-trans.png';
 // --- THEME CONTEXT WITH LOCALSTORAGE ---
 const ThemeContext = createContext({
   isDarkMode: false,
@@ -282,7 +284,7 @@ const ClearSessionWarning = ({ onConfirm, onCancel }) => {
   );
 };
 
-const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID, username, onUsernameUpdate, onClearSession }) => {
+const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID, username, onUsernameUpdate, onClearSession, onShowSignInModal, isSigningIn }) => {
   const dropdownRef = useRef(null);
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [editingUsername, setEditingUsername] = useState(username || '');
@@ -349,11 +351,24 @@ const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID, username, onUser
 
   if (!isOpen) return null;
 
-  // Generate user initials from userID
+  // Generate user initials from username or default to 'U'
   const getUserInitials = () => {
-    if (!userID) return 'AI';
-    const parts = userID.split('_');
-    return parts[0] ? parts[0].substring(0, 2).toUpperCase() : 'AI';
+    if (username && username.trim() && username !== 'Guest User') {
+      const trimmedName = username.trim();
+      // Split by underscore, hyphen, or whitespace
+      const words = trimmedName.split(/[_\-\s]+/).filter(word => word.length > 0);
+      
+      if (words.length >= 2) {
+        // Two or more words: take first character of first two words
+        return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+      } else if (words.length === 1) {
+        // One word: take first character
+        return words[0].charAt(0).toUpperCase();
+      }
+    }
+    
+    // Default fallback
+    return 'U';
   };
 
   return (
@@ -464,18 +479,31 @@ const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID, username, onUser
         </div>
         <hr className="my-1 border-gray-200 dark:border-gray-700" />
         <div className="relative">
-          <button 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('🔘 Logout button clicked');
-              setShowClearWarning(true);
-            }}
-            className="w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-150 flex items-center space-x-3"
-          >
-            <LogOut className="h-4 w-4 flex-shrink-0" />
-            <span>Log Out</span>
-          </button>
+          {/* Sign In Option - only show when not signed in */}
+          {!userID && (
+            <button 
+              onClick={onShowSignInModal} // USE THE PROP HERE
+              disabled={isSigningIn} // ADD LOADING STATE
+              className="w-full px-4 py-3 text-left text-sm text-[#5C946E] hover:bg-green-50 dark:hover:bg-green-950 hover:text-green-700 dark:hover:text-green-300 transition-colors duration-150 flex items-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <LogIn className="h-4 w-4 flex-shrink-0" />
+              <span>{isSigningIn ? 'Signing In...' : 'Sign In'}</span>
+            </button>
+          )}
+          {userID && (
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔘 Logout button clicked');
+                setShowClearWarning(true);
+              }}
+              className="w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-150 flex items-center space-x-3"
+            >
+              <LogOut className="h-4 w-4 flex-shrink-0" />
+              <span>Log Out</span>
+            </button>
+          )}
         </div>
 
         {/* Warning Modal - Move outside of the dropdown div */}
@@ -524,7 +552,11 @@ const Navbar = ({
   lastUpdate = null,
   hasRoadmap = false,
   isGenerating = false,
-  generationProgress = ''
+  generationProgress = '',
+  showSignInModal,
+  onShowSignInModal,
+  onSignIn,
+  isSigningIn
 }) => {
   // Get theme from context
   const { isDarkMode } = useTheme();
@@ -553,17 +585,35 @@ const Navbar = ({
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
-  // Get user initials for avatar
+  // Generate user initials from username or default to 'U'
   const getUserInitials = () => {
-    if (!userID) return 'AI';
-    const parts = userID.split('_');
-    return parts[0] ? parts[0].substring(0, 2).toUpperCase() : 'AI';
+    if (username && username.trim() && username !== 'Guest User') {
+      const trimmedName = username.trim();
+      // Split by underscore, hyphen, or whitespace
+      const words = trimmedName.split(/[_\-\s]+/).filter(word => word.length > 0);
+      
+      if (words.length >= 2) {
+        // Two or more words: take first character of first two words
+        return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+      } else if (words.length === 1) {
+        // One word: take first character
+        return words[0].charAt(0).toUpperCase();
+      }
+    }
+    
+    // Default fallback
+    return 'U';
   };
 
   // Get display name
   const getDisplayName = () => {
-    if (!userID) return 'AI Assistant';
-    return `Learning Session`;
+    if (username && username.trim() && username !== 'Guest User') {
+      return username;
+    }
+    if (userID) {
+      return 'Learning Session';
+    }
+    return 'Guest User';
   };
 
   // Get user role/status
@@ -579,9 +629,9 @@ const Navbar = ({
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 transition-colors duration-200">
           <div className="flex items-center justify-between">
             {/* Logo and Brand */}
-            <div className="flex items-center space-x-3 min-w-0">
-              <div className="w-8 h-8 bg-[#5C946E] rounded-lg flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-5 w-5 text-white" />
+            <div className="flex items-center space-x-3 min-w-0" style={{userSelect: 'none'}}>
+              <div className="w-8 h-8 bg-transparent rounded-lg flex items-center justify-center flex-shrink-0">
+                <img src={logo} className="h-9 w-9" />
               </div>
               {isExpanded && (
                 <div className="min-w-0 flex-1">
@@ -708,7 +758,9 @@ const Navbar = ({
               {isExpanded && (
                 <>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{username || 'Guest User'}</p>
+                    <p className="text-sm font-medium truncate">
+                      {username && username.trim() && username !== 'Guest User' ? username : 'Guest User'}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate transition-colors duration-200">{getUserRole()}</p>
                   </div>
                   <div className="flex-shrink-0">
@@ -728,7 +780,9 @@ const Navbar = ({
               userID={userID}
               username={username}
               onUsernameUpdate={onUsernameUpdate}
-              onClearSession={onClearSession} 
+              onClearSession={onClearSession}
+              onShowSignInModal={onShowSignInModal}
+              isSigningIn={isSigningIn}
             />
           </div>
 

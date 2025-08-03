@@ -334,6 +334,10 @@ const Workplace = ({
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [hideWarningPreference, setHideWarningPreference] = useState(false);
 
+  useEffect(() => {
+      document.title = 'PathForge - WorkPlace';
+    }, []);
+
   // Initialize and update data
   useEffect(() => {
     if (roadmapData) {
@@ -819,7 +823,7 @@ const Workplace = ({
                             <Calendar className="h-6 w-6" />
                             <div>
                               <h3 className="text-xl font-semibold">
-                                Week {week}: {weekTheme}
+                                Week {week} {/*{weekTheme}*/}
                               </h3>
                               <p className="text-blue-100">
                                 {weekCompleted} of {weekTotal} tasks completed

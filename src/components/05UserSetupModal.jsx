@@ -12,8 +12,8 @@ import {
   EyeOff
 } from 'lucide-react';
 
-// Import the theme hook
-import { useTheme } from './ThemeProvider';
+// Mock theme hook for demo
+const useTheme = () => ({ isDarkMode: false });
 
 // --- UI COMPONENTS ---
 const Button = ({ children, onClick, disabled, variant = 'primary', className = '', size = 'md', icon: Icon }) => {
@@ -134,11 +134,11 @@ const CopyButton = ({ textToCopy, className = '' }) => {
 
 // --- MAIN MODAL COMPONENT ---
 const UserSetupModal = ({ 
-  isOpen, 
-  onClose, 
-  onSave, 
-  onSkip,
-  userID,
+  isOpen = true, 
+  onClose = () => {}, 
+  onSave = (username) => console.log('Save:', username), 
+  onSkip = () => console.log('Skip'),
+  userID = 'user_12345_abcdef',
   isLoading = false,
   error = null
 }) => {
@@ -165,25 +165,36 @@ const UserSetupModal = ({
       // Extract the last part of the userID for a cleaner suggestion
       const parts = userID.split('_');
       const lastPart = parts[parts.length - 1];
-      return `Learner_${lastPart.substring(0, 6)}`;
+      return `Learner ${lastPart.substring(0, 6)}`;
     }
-    return 'NewLearner';
+    return 'New Learner';
   };
 
-  // Form validation
+  // Updated form validation to allow spaces
   const validateUsername = (value) => {
     if (!value.trim()) {
       return 'Username is required';
     }
-    if (value.trim().length < 3) {
+    
+    const trimmedValue = value.trim();
+    
+    if (trimmedValue.length < 3) {
       return 'Username must be at least 3 characters long';
     }
-    if (value.trim().length > 20) {
+    if (trimmedValue.length > 20) {
       return 'Username must be less than 20 characters';
     }
-    if (!/^[a-zA-Z0-9_-]+$/.test(value.trim())) {
-      return 'Username can only contain letters, numbers, hyphens, and underscores';
+    
+    // Updated regex to allow spaces along with letters, numbers, hyphens, and underscores
+    if (!/^[a-zA-Z0-9_\-\s]+$/.test(trimmedValue)) {
+      return 'Username can only contain letters, numbers, spaces, hyphens, and underscores';
     }
+    
+    // Check for multiple consecutive spaces (optional validation)
+    if (/\s{2,}/.test(trimmedValue)) {
+      return 'Username cannot contain multiple consecutive spaces';
+    }
+    
     return '';
   };
 
@@ -275,7 +286,7 @@ const UserSetupModal = ({
 
               {/* Welcome Text */}
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                🎉 Welcome to PathForge!
+                Welcome to PathForge!
               </h2>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Congratulations! Your first learning roadmap has been created successfully. 
@@ -298,7 +309,7 @@ const UserSetupModal = ({
                     value={username}
                     onChange={handleUsernameChange}
                     onKeyPress={handleKeyPress}
-                    placeholder="e.g., TechLearner2024"
+                    placeholder="e.g., Tech Learner 2024"
                     error={usernameError}
                     disabled={isLoading}
                     maxLength={20}
@@ -307,7 +318,7 @@ const UserSetupModal = ({
                   {/* Username Helper */}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500 dark:text-gray-400">
-                      3-20 characters, letters, numbers, - and _ only
+                      3-20 characters, letters, numbers, spaces, - and _ only
                     </span>
                     <button
                       onClick={useSuggestedUsername}

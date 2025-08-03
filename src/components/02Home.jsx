@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Mail, Target, Clock, CheckCircle, AlertCircle, Users, Award, TrendingUp, Zap, ArrowRight, Globe, Star, X } from 'lucide-react';
-
+import logo from '../assets/logo-trans.png';
 // Import the theme hook from ThemeProvider
 import { useTheme } from './ThemeProvider';
 import RoadmapService from '../services/RoadmapService';
@@ -168,7 +168,7 @@ const FeatureCard = ({ icon: Icon, title, description }) => (
 const Home = ({ 
   onRoadmapGenerated, 
   onSwitchToWorkplace, 
-  existingFormData = null,
+  // existingFormData = null,
   isGenerating = false,
   hasExistingRoadmap = false,
   currentUserID = null,
@@ -176,6 +176,10 @@ const Home = ({
 }) => {
   // Use theme from context instead of local state
   const { isDarkMode } = useTheme();
+
+  useEffect(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.hash])
 
   useEffect(() => {
     document.title = 'PathForge - Generate Roadmap';
@@ -188,7 +192,7 @@ const Home = ({
     email: '',
     goal: 'Get a Job',
     level: 'Beginner',
-    weeks: '8'
+    weeks: ''
   });
 
   // UI state
@@ -219,17 +223,17 @@ const Home = ({
     { value: 'Skill Upgrade', label: 'Skill Upgrade - Professional development' }
   ];
 
-  // Initialize form data
-  useEffect(() => {
-    if (existingFormData) {
-      setFormData(existingFormData);
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        userID: generateUserID()
-      }));
-    }
-  }, [existingFormData]);
+  // // Initialize form data
+  // useEffect(() => {
+  //   if (existingFormData) {
+  //     setFormData(existingFormData);
+  //   } else {
+  //     setFormData(prev => ({
+  //       ...prev,
+  //       userID: generateUserID()
+  //     }));
+  //   }
+  // }, [existingFormData]);
 
   // Initialize "don't show again" preference from localStorage
   useEffect(() => {
@@ -445,7 +449,7 @@ const Home = ({
       email: prev.email,
       goal: 'Get a Job',
       level: 'Beginner',
-      weeks: '8',
+      weeks: '',
       userID: generateUserID()
     }));
   };
@@ -478,7 +482,7 @@ const Home = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
             <div className="text-center flex-1">
-              <h1 className="text-7xl font-bold text-[#5C946E] mb-3">
+              <h1 className="text-7xl font-bold text-[#5C946E] mb-3" style={{userSelect: 'none'}}>
                 PathForge
               </h1>
               <p className="text-l text-gray-600 dark:text-gray-400 max-w-2xl mx-auto transition-colors duration-200">
@@ -613,7 +617,7 @@ const Home = ({
                     name="weeks"
                     value={formData.weeks}
                     onChange={handleInputChange}
-                    placeholder="8"
+                    placeholder="1 to 12"
                     min="1"
                     max="12"
                     error={formErrors.weeks}

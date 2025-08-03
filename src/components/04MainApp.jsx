@@ -5,7 +5,7 @@ import Workplace from './03Workplace';
 import Navbar from './00Navbar';
 import RoadmapService from '../services/RoadmapService';
 import UserSetupModal from './05UserSetupModal';
-
+import SignInModal from './07SignInModal';
 // --- UI COMPONENTS ---
 const StatusCard = ({ icon: Icon, title, message, variant = 'info', className = '', showSpinner = false }) => {
   const variants = {
@@ -54,11 +54,11 @@ const ROUTE_COMPONENTS = {
   'workplace': Workplace,
   // Future routes can be added here
   'dashboard': null, // Placeholder for future dashboard component
-  'assignments': null, // Placeholder for assignments component
-  'analytics': null, // Placeholder for analytics component
-  'reports': null, // Placeholder for reports component
-  'settings': null, // Placeholder for settings component
-  'profile': null, // Placeholder for profile component
+  'assignments': null,
+  'analytics': null,
+  'reports': null,
+  'settings': null,
+  'profile': null,
 };
 
 // Available tabs for navigation
@@ -113,6 +113,10 @@ const MainApp = () => {
   const [showInvalidUserModal, setShowInvalidUserModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState(ERROR_TYPES.UNKNOWN_ERROR);
+
+  // === SIGN IN MODAL ===
+  const [showSignInModal, setShowSignInModal] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   // === INITIALIZATION ===
   useEffect(() => {
@@ -787,6 +791,60 @@ const MainApp = () => {
     }
   }, []);
 
+  const handleSignIn = async (inputUserID) => {
+    setIsSigningIn(true);
+    setRoadmapError(null);
+    setRoadmapErrorType(null);
+    
+    try {
+      console.log('🔑 Attempting to sign in with User ID:', inputUserID);
+      
+      // Step 1: Check if user exists
+      const userProfile = await RoadmapService.fetchUserProfile(inputUserID);
+      
+      if (!userProfile) {
+        throw new Error('User ID not found. Please check your User ID and try again.');
+      }
+      
+      console.log('✅ User profile found:', userProfile);
+      
+      // Step 2: Update user session state
+      setCurrentUserID(inputUserID);
+      setUserProfile(userProfile);
+      setIsFirstTimeUser(!userProfile.username || userProfile.username === 'New User');
+      
+      // Save to sessionStorage
+      sessionStorage.setItem('currentUserID', inputUserID);
+      
+      // Step 3: Try to fetch roadmap data
+      try {
+        const roadmapData = await RoadmapService.fetchRoadmapData(inputUserID);
+        
+        if (roadmapData && roadmapData.tasks && roadmapData.tasks.length > 0) {
+          console.log('📊 Roadmap data found, switching to workplace');
+          setRoadmapData(roadmapData);
+          setLastDataRefresh(new Date());
+          handleRouteChange('workplace');
+        } else {
+          console.log('📝 No roadmap data found, staying on home');
+          handleRouteChange('home');
+        }
+      } catch (roadmapError) {
+        console.log('📝 No roadmap found for user, staying on home');
+        handleRouteChange('home');
+        // Don't throw here - user exists but just doesn't have a roadmap yet
+      }
+      
+      console.log('✅ User signed in successfully');
+      setShowSignInModal(false);
+      
+    } catch (error) {
+      console.error('❌ Sign-in failed:', error);
+      throw error; // Re-throw for modal to handle
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
 
   // === PAGE REFRESH DETECTION ===
   const isPageRefresh = () => {
@@ -828,7 +886,7 @@ const MainApp = () => {
         <ActiveComponent
           onRoadmapGenerated={handleRoadmapGenerated}
           onSwitchToWorkplace={switchToWorkplace}
-          existingFormData={currentFormData}
+          // existingFormData={currentFormData}
           isGenerating={isGeneratingRoadmap}
           onProgress={handleGenerationProgress}
           onComplete={handleGenerationComplete}
@@ -946,6 +1004,11 @@ const MainApp = () => {
         hasRoadmap={!!roadmapData}
         isGenerating={isGeneratingRoadmap}
         generationProgress={generationProgress}
+        // Sign-in related props
+        showSignInModal={showSignInModal}
+        onShowSignInModal={() => setShowSignInModal(true)}
+        onSignIn={handleSignIn}
+        isSigningIn={isSigningIn}
       />
 
       {/* Main Content Area */}
@@ -1012,6 +1075,14 @@ const MainApp = () => {
             onClose={() => setShowUserSetupModal(false)}
           />
         )}
+
+        {/* Sign In Modal*/}
+        <SignInModal
+          isOpen={showSignInModal}
+          onClose={() => setShowSignInModal(false)}
+          onSignIn={handleSignIn}
+          isLoading={isSigningIn}
+        />
 
         {/* Debug Info (Development only) */}
         {process.env.NODE_ENV === 'development' && (
