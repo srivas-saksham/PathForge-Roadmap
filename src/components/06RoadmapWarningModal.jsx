@@ -52,7 +52,7 @@ const RoadmapWarningModal = ({ isOpen, onClose, onProceed, onCancel, onDontShowA
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300" onClick={onClose}></div>
+      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300" ></div>
       
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">

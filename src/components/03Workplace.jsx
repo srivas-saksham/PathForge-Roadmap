@@ -329,7 +329,8 @@ const Workplace = ({
   const [expandedTasks, setExpandedTasks] = useState(new Set());
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'completed'
-  const [selectedWeek, setSelectedWeek] = useState('all'); // 'all', or week number
+  const [selectedWeek, setSelectedWeek] = useState('all');
+  const [collapsedWeeks, setCollapsedWeeks] = useState(new Set());
   const [localError, setLocalError] = useState(null);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [hideWarningPreference, setHideWarningPreference] = useState(false);
@@ -434,6 +435,19 @@ const Workplace = ({
         newSet.delete(taskId);
       } else {
         newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle week dropdown toggle
+  const toggleWeekDropdown = (weekNumber) => {
+    setCollapsedWeeks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(weekNumber)) {
+        newSet.delete(weekNumber);
+      } else {
+        newSet.add(weekNumber);
       }
       return newSet;
     });
@@ -765,8 +779,28 @@ const Workplace = ({
             </div>
 
             {/* Filters */}
-            <div className="bg-[#e3eee6] dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Filters</h3>
+              <div className="bg-[#e3eee6] dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCollapsedWeeks(new Set())}
+                      className="text-xs"
+                    >
+                      Expand All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCollapsedWeeks(new Set(availableWeeks))}
+                      className="text-xs"
+                    >
+                      Collapse All
+                    </Button>
+                  </div>
+                </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Status Filter */}
                 <div>
@@ -818,7 +852,10 @@ const Workplace = ({
                     <div key={week} className="bg-[#e3eee6] dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
                       {/* Week Header */}
                       <div className="bg-[#5c946d] text-white p-6">
-                        <div className="flex items-center justify-between">
+                        <div 
+                          className="flex items-center justify-between cursor-pointer hover:bg-[#4b7f5b] transition-colors rounded-lg p-2 -m-2"
+                          onClick={() => toggleWeekDropdown(parseInt(week))}
+                        >
                           <div className="flex items-center space-x-3">
                             <Calendar className="h-6 w-6" />
                             <div>
@@ -830,9 +867,14 @@ const Workplace = ({
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-[#e6fff0]">{Math.round(weekProgress)}%</div>
-                            <div className="text-sm text-blue-100">Complete</div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-[#e6fff0]">{Math.round(weekProgress)}%</div>
+                              <div className="text-sm text-blue-100">Complete</div>
+                            </div>
+                            <ChevronDown className={`h-6 w-6 transition-transform duration-300 ${
+                              collapsedWeeks.has(parseInt(week)) ? 'rotate-0' : 'rotate-180'
+                            }`} />
                           </div>
                         </div>
                         <div className="mt-4">
@@ -841,6 +883,11 @@ const Workplace = ({
                       </div>
 
                       {/* Tasks List */}
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                        collapsedWeeks.has(parseInt(week)) 
+                          ? 'max-h-0 opacity-0' 
+                          : 'max-h-[2000px] opacity-100'
+                      }`}>
                       <div className="p-6">
                         <div className="space-y-4">
                           {weekTasks.map(task => {
@@ -882,11 +929,9 @@ const Workplace = ({
                                             >
                                               <ExternalLink className="h-4 w-4" />
                                               <span>Learning Resources</span>
-                                              {isExpanded ? (
-                                                <ChevronUp className="h-4 w-4" />
-                                              ) : (
-                                                <ChevronDown className="h-4 w-4" />
-                                              )}
+                                              <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${
+                                                isExpanded ? 'rotate-180' : 'rotate-0'
+                                              }`} />
                                             </button>
                                           )}
                                         </div>
@@ -933,8 +978,12 @@ const Workplace = ({
                                 </div>
                                 
                                 {/* Expandable Resources Section */}
-                                {hasResources && isExpanded && (
-                                  <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                                {hasResources && (
+                                  <div className={`border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-hidden transition-all duration-300 ease-in-out ${
+                                    isExpanded 
+                                      ? 'max-h-96 opacity-100' 
+                                      : 'max-h-0 opacity-0'
+                                  }`}>
                                     <div className="p-4">
                                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center space-x-2">
                                         <BookOpen className="h-4 w-4" />
@@ -992,6 +1041,7 @@ const Workplace = ({
                           })}
                         </div>
                       </div>
+                      </div>                      
                     </div>
                   );
                 })}

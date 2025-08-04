@@ -248,7 +248,6 @@ const UserSetupModal = ({
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-60 transition-opacity duration-300" 
-        onClick={!isLoading ? onClose : undefined}
       />
       
       {/* Modal */}
