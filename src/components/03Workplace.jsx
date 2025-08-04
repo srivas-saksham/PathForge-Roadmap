@@ -363,6 +363,19 @@ const Workplace = ({
     }
   }, []);
 
+  // Auto-click refresh button after 30 seconds when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      console.log('🔄 Auto-clicking refresh button after 30 seconds...');
+      if (onRefreshData) {
+        handleRefresh();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+
   // Handle task status toggle
   const handleToggleTaskStatus = async (task) => {
     if (!task || !task.id) return;
