@@ -188,7 +188,7 @@ const Home = ({
   // Form state
   const [formData, setFormData] = useState({
     skill: '',
-    userID: '',
+    userID: generateUserID(),
     email: '',
     goal: 'Get a Job',
     level: 'Beginner',
@@ -223,17 +223,16 @@ const Home = ({
     { value: 'Skill Upgrade', label: 'Skill Upgrade - Professional development' }
   ];
 
-  // // Initialize form data
-  // useEffect(() => {
-  //   if (existingFormData) {
-  //     setFormData(existingFormData);
-  //   } else {
-  //     setFormData(prev => ({
-  //       ...prev,
-  //       userID: generateUserID()
-  //     }));
-  //   }
-  // }, [existingFormData]);
+  // Initialize form data and userID
+  useEffect(() => {
+    // Always generate a userID if one doesn't exist
+    if (!formData.userID) {
+      setFormData(prev => ({
+        ...prev,
+        userID: generateUserID()
+      }));
+    }
+  }, [])
 
   // Initialize "don't show again" preference from localStorage
   useEffect(() => {
