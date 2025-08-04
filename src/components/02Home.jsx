@@ -185,10 +185,13 @@ const Home = ({
     document.title = 'PathForge - Generate Roadmap';
   }, []);
 
-  // Form state
+  // Generate initial UserID immediately
+  const [initialUserID] = useState(() => generateUserID());
+
+  // Form state with proper UserID initialization
   const [formData, setFormData] = useState({
     skill: '',
-    userID: generateUserID(),
+    userID: initialUserID,
     email: '',
     goal: 'Get a Job',
     level: 'Beginner',
@@ -223,17 +226,6 @@ const Home = ({
     { value: 'Skill Upgrade', label: 'Skill Upgrade - Professional development' }
   ];
 
-  // Initialize form data and userID
-  useEffect(() => {
-    // Always generate a userID if one doesn't exist
-    if (!formData.userID) {
-      setFormData(prev => ({
-        ...prev,
-        userID: generateUserID()
-      }));
-    }
-  }, [])
-
   // Initialize "don't show again" preference from localStorage
   useEffect(() => {
     const savedPreference = localStorage.getItem('hideRoadmapWarning');
@@ -249,6 +241,16 @@ const Home = ({
       setStatusMessage('Processing your request...');
     }
   }, [isGenerating, generationState]);
+
+  // Debug logging for UserID
+  useEffect(() => {
+    console.log('🔍 Home component UserID state:', {
+      'formData.userID': formData.userID,
+      'initialUserID': initialUserID,
+      'currentUserID': currentUserID,
+      'hasExistingRoadmap': hasExistingRoadmap
+    });
+  }, [formData.userID, initialUserID, currentUserID, hasExistingRoadmap]);
 
   // Form validation
   const validateForm = () => {
@@ -280,6 +282,15 @@ const Home = ({
       errors.weeks = 'Please enter a number between 1 and 12 weeks';
     }
 
+    // Validate UserID
+    if (!formData.userID || formData.userID.trim() === '') {
+      console.warn('⚠️ UserID is missing during validation');
+      // Regenerate UserID if missing
+      const newUserID = generateUserID();
+      setFormData(prev => ({ ...prev, userID: newUserID }));
+      console.log('🔧 Generated new UserID during validation:', newUserID);
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -304,16 +315,28 @@ const Home = ({
   const proceedWithGeneration = async (submissionData = null) => {
     const dataToSubmit = submissionData || formData;
     
+    // Ensure UserID exists before proceeding
+    if (!dataToSubmit.userID || dataToSubmit.userID.trim() === '') {
+      const newUserID = generateUserID();
+      dataToSubmit.userID = newUserID;
+      console.log('🔧 Generated UserID before submission:', newUserID);
+      
+      // Update form state if using current formData
+      if (!submissionData) {
+        setFormData(prev => ({ ...prev, userID: newUserID }));
+      }
+    }
+    
     setGenerationState('submitting');
     setStatusMessage('Submitting your request to AI planner...');
     setError(null);
     setSubmissionCount(prev => prev + 1);
 
     try {
-      const userID = dataToSubmit.userID || generateUserID();
-      const finalSubmissionData = { ...dataToSubmit, userID };
+      const finalSubmissionData = { ...dataToSubmit };
       
       console.log('🎯 Starting roadmap generation process...', finalSubmissionData);
+      console.log('🔍 Final UserID being submitted:', finalSubmissionData.userID);
 
       const plannerResult = await RoadmapService.submitToPlanner(finalSubmissionData);
       console.log('📤 Planner result:', plannerResult);
@@ -322,7 +345,7 @@ const Home = ({
         console.log('✅ Planner reported completion, starting data fetch...');
         setGenerationState('polling');
         setStatusMessage('Planner completed! Fetching your roadmap data...');
-        startDataPolling(userID);
+        startDataPolling(finalSubmissionData.userID);
       } else {
         console.log('⏳ Planner still processing, waiting for completion...');
         setStatusMessage('AI is processing your request...');
@@ -330,7 +353,7 @@ const Home = ({
         setTimeout(() => {
           setGenerationState('polling');
           setStatusMessage('Checking for completion and fetching data...');
-          startDataPolling(userID);
+          startDataPolling(finalSubmissionData.userID);
         }, 3000);
       }
 
@@ -358,8 +381,15 @@ const Home = ({
       return;
     }
 
-    const userID = formData.userID || generateUserID();
-    const submissionData = { ...formData, userID };
+    // Ensure UserID exists
+    let submissionData = { ...formData };
+    if (!submissionData.userID || submissionData.userID.trim() === '') {
+      submissionData.userID = generateUserID();
+      setFormData(prev => ({ ...prev, userID: submissionData.userID }));
+      console.log('🔧 Generated UserID during submit:', submissionData.userID);
+    }
+
+    console.log('📝 Form submission data:', submissionData);
 
     // Check if we should show warning modal
     if (shouldShowWarning()) {
@@ -398,6 +428,15 @@ const Home = ({
 
   // Start polling for roadmap data
   const startDataPolling = (userID) => {
+    if (!userID || userID.trim() === '') {
+      console.error('❌ Cannot start polling - UserID is missing');
+      setError('UserID is missing - cannot fetch roadmap data');
+      setGenerationState('error');
+      return;
+    }
+
+    console.log('🚀 Starting data polling for UserID:', userID);
+
     RoadmapService.pollForData(
       userID,
       (message) => {
@@ -416,7 +455,7 @@ const Home = ({
       }
       
       // Notify MainApp if this is a first-time generation
-      if (isFirstTime && onFirstTimeGeneration) {
+      if (isFirstTime && onFirstTimeGeneration && formData.userID) {
         onFirstTimeGeneration(formData.userID, formData);
       }
       
@@ -443,14 +482,18 @@ const Home = ({
     setStatusMessage('');
     setFormErrors({});
     setSubmissionCount(0);
+    
+    const newUserID = generateUserID();
     setFormData(prev => ({
       skill: '',
-      email: prev.email,
+      email: prev.email, // Keep email for user convenience
       goal: 'Get a Job',
       level: 'Beginner',
       weeks: '',
-      userID: generateUserID()
+      userID: newUserID
     }));
+    
+    console.log('🔄 Form reset with new UserID:', newUserID);
   };
 
   // Cancel generation process
@@ -631,6 +674,8 @@ const Home = ({
                     <div className="text-xs text-gray-600 dark:text-gray-400 transition-colors duration-200">
                       <div className="font-medium mb-1">Debug Information:</div>
                       <div>User ID: {formData.userID}</div>
+                      <div>Initial ID: {initialUserID}</div>
+                      <div>Current User ID: {currentUserID || 'None'}</div>
                       <div>State: {generationState}</div>
                       <div>Theme: {isDarkMode ? 'Dark' : 'Light'}</div>
                       <div>Has Existing Roadmap: {hasExistingRoadmap ? 'Yes' : 'No'}</div>
