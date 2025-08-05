@@ -113,6 +113,184 @@ const ProgressBar = ({ current, total, className = '' }) => {
   );
 };
 
+// === SKELETON COMPONENTS ===
+const SkeletonBox = ({ className = '', height = "h-4" }) => (
+  <div className={`bg-gray-200 dark:bg-gray-700 animate-pulse rounded ${height} ${className}`}></div>
+);
+
+const SkeletonCircle = ({ size = "h-6 w-6" }) => (
+  <div className={`bg-gray-200 dark:bg-gray-700 animate-pulse rounded-full ${size}`}></div>
+);
+
+const SkeletonProgressCard = () => (
+  <div className="bg-[#e3eee6] dark:bg-gray-800 rounded-xl shadow-lg p-6 animate-pulse">
+    {/* Header */}
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center space-x-2">
+        <SkeletonCircle size="h-5 w-5" />
+        <SkeletonBox className="w-32" />
+      </div>
+      <SkeletonBox className="w-20 h-8" />
+    </div>
+    
+    {/* Stats Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <SkeletonBox className="w-12 h-8 mx-auto mb-1" />
+          <SkeletonBox className="w-16 h-3 mx-auto" />
+        </div>
+      ))}
+    </div>
+
+    {/* Progress Bar */}
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <SkeletonBox className="w-24 h-3" />
+        <SkeletonBox className="w-8 h-3" />
+      </div>
+      <SkeletonBox className="w-full h-2 rounded-full" />
+    </div>
+  </div>
+);
+
+const SkeletonFiltersCard = () => (
+  <div className="bg-[#e3eee6] dark:bg-gray-800 rounded-xl shadow-lg p-6 animate-pulse">
+    <div className="flex items-center justify-between mb-4">
+      <SkeletonBox className="w-16 h-5" />
+      <div className="flex space-x-2">
+        <SkeletonBox className="w-20 h-6" />
+        <SkeletonBox className="w-20 h-6" />
+      </div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[...Array(2)].map((_, i) => (
+        <div key={i}>
+          <SkeletonBox className="w-24 h-3 mb-2" />
+          <SkeletonBox className="w-full h-10" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const SkeletonTaskCard = () => (
+  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden animate-pulse">
+    <div className="p-4">
+      <div className="flex items-start space-x-4">
+        {/* Status Icon */}
+        <div className="flex-shrink-0 mt-1">
+          <SkeletonCircle />
+        </div>
+
+        {/* Task Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <SkeletonBox className="w-3/4 h-4 mb-2" />
+              <SkeletonBox className="w-1/2 h-3" />
+              
+              {/* Resources Button */}
+              <div className="flex items-center space-x-2 mt-3">
+                <SkeletonCircle size="h-4 w-4" />
+                <SkeletonBox className="w-32 h-3" />
+                <SkeletonCircle size="h-4 w-4" />
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <div className="flex-shrink-0 ml-4">
+              <SkeletonBox className="w-24 h-8" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonWeekCard = () => (
+  <div className="bg-[#e3eee6] dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden animate-pulse">
+    {/* Week Header */}
+    <div className="bg-gray-300 dark:bg-gray-600 p-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <SkeletonCircle />
+          <div>
+            <SkeletonBox className="w-24 h-5 mb-2 bg-gray-400 dark:bg-gray-500" />
+            <SkeletonBox className="w-32 h-3 bg-gray-400 dark:bg-gray-500" />
+          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="text-right">
+            <SkeletonBox className="w-12 h-6 mb-1 bg-gray-400 dark:bg-gray-500" />
+            <SkeletonBox className="w-16 h-3 bg-gray-400 dark:bg-gray-500" />
+          </div>
+          <SkeletonCircle className="bg-gray-400 dark:bg-gray-500" />
+        </div>
+      </div>
+      <div className="mt-4">
+        <SkeletonBox className="w-full h-2 rounded-full bg-gray-400 dark:bg-gray-500" />
+      </div>
+    </div>
+
+    {/* Tasks List */}
+    <div className="p-6">
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <SkeletonTaskCard key={i} />
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonRoadmapContent = () => (
+  <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
+    <div className="container mx-auto max-w-6xl">
+      
+      {/* Header Section Skeleton */}
+      <div className="text-center mb-8 animate-pulse">
+        <div className="flex items-center justify-center space-x-3 mb-4">
+          <SkeletonCircle size="h-8 w-8" />
+          <SkeletonBox className="w-64 h-8" />
+        </div>
+        <SkeletonBox className="w-48 h-4 mx-auto mb-2" />
+        <div className="flex items-center justify-center space-x-4">
+          <SkeletonBox className="w-32 h-3" />
+        </div>
+        <SkeletonBox className="w-80 h-3 mx-auto mt-2" />
+      </div>
+
+      {/* Progress Overview Skeleton */}
+      <SkeletonProgressCard />
+
+      {/* Filters Skeleton */}
+      <div className="mt-8">
+        <SkeletonFiltersCard />
+      </div>
+
+      {/* Weekly Tasks Skeleton */}
+      <div className="mt-8 space-y-6">
+        {[...Array(3)].map((_, i) => (
+          <SkeletonWeekCard key={i} />
+        ))}
+      </div>
+
+      {/* Action Buttons Skeleton */}
+      <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center animate-pulse">
+        <SkeletonBox className="w-32 h-10" />
+        <SkeletonBox className="w-40 h-10" />
+      </div>
+
+      {/* Footer Skeleton */}
+      <div className="mt-12 text-center animate-pulse">
+        <SkeletonBox className="w-80 h-4 mx-auto" />
+      </div>
+    </div>
+  </div>
+);
+
 // --- INVALID USER MODAL COMPONENT (ENHANCED) ---
 const InvalidUserModal = ({ 
   isOpen, 
@@ -321,7 +499,8 @@ const Workplace = ({
   onModalGoHome,
   // Additional props
   connectionStatus = 'online',
-  isPageRefresh = false
+  isPageRefresh = false,
+  isInitialPageLoad = false
 }) => {
   // Component state
   const [localRoadmapData, setLocalRoadmapData] = useState(roadmapData);
@@ -332,6 +511,8 @@ const Workplace = ({
   const [selectedWeek, setSelectedWeek] = useState('all');
   const [collapsedWeeks, setCollapsedWeeks] = useState(new Set());
   const [localError, setLocalError] = useState(null);
+  const [userSkill, setUserSkill] = useState(null);
+  const [isLoadingSkill, setIsLoadingSkill] = useState(false);  
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [hideWarningPreference, setHideWarningPreference] = useState(false);
 
@@ -374,6 +555,31 @@ const Workplace = ({
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Fetch user skill when userID changes
+  useEffect(() => {
+    const fetchUserSkill = async () => {
+      if (!userID) {
+        setUserSkill(null);
+        return;
+      }
+
+      setIsLoadingSkill(true);
+      try {
+        console.log('🎯 Fetching skill for user:', userID);
+        const skill = await RoadmapService.fetchUserSkill(userID);
+        setUserSkill(skill);
+        console.log('✅ Skill fetched:', skill);
+      } catch (error) {
+        console.error('❌ Failed to fetch user skill:', error);
+        setUserSkill(null);
+      } finally {
+        setIsLoadingSkill(false);
+      }
+    };
+
+    fetchUserSkill();
+  }, [userID]);
 
 
   // Handle task status toggle
@@ -579,29 +785,9 @@ const Workplace = ({
     localStorage.setItem('hideRoadmapWarning', hide.toString());
   };
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center py-20">
-            <LoadingSpinner size="xl" className="mx-auto mb-4 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Loading Your Roadmap
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Please wait while we fetch your learning path...
-            </p>
-            {connectionStatus === 'offline' && (
-              <div className="mt-4 flex items-center justify-center space-x-2 text-orange-600 dark:text-orange-400">
-                <WifiOff className="h-4 w-4" />
-                <span className="text-sm">You're offline - this may take longer</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  // Loading state - show skeleton UI
+  if (isLoading || isInitialPageLoad) {
+    return <SkeletonRoadmapContent />;
   }
 
   // Error state without modal (fallback)
@@ -693,7 +879,11 @@ const Workplace = ({
           <div className="flex items-center justify-center space-x-3 mb-4">
             <Target className="h-8 w-8 text-[#5c946d]" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {localRoadmapData?.skill || 'Learning Roadmap'}
+              {isLoadingSkill ? (
+                <SkeletonBox className="w-64 h-8 mx-auto" />
+              ) : (
+                userSkill ? `${userSkill} Roadmap` : 'Learning Roadmap'
+              )}
             </h1>
           </div>
           <p className="text-gray-600 dark:text-gray-400 mb-2">

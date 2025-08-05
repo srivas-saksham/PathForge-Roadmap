@@ -100,7 +100,7 @@ const MainApp = () => {
   const [roadmapErrorType, setRoadmapErrorType] = useState(null);
 
   // === APP STATE ===
-  const [appState, setAppState] = useState('initializing'); // 'initializing', 'ready', 'error'
+  const [appState, setAppState] = useState('ready'); // 'initializing', 'ready', 'error'
   const [connectionStatus, setConnectionStatus] = useState('online');
   const [lastDataRefresh, setLastDataRefresh] = useState(new Date());
 
@@ -118,6 +118,7 @@ const MainApp = () => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  const [isInitialPageLoad, setIsInitialPageLoad] = useState(true);
   // === INITIALIZATION ===
   useEffect(() => {
     initializeApp();
@@ -148,54 +149,37 @@ const MainApp = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // === APP INITIALIZATION ===
   const initializeApp = async () => {
-    console.log('🚀 Initializing MainApp...');
+  console.log('🚀 Initializing MainApp...');
+  
+  // Check if this is a page refresh/reload
+    const isPageRefresh = performance.navigation?.type === 1 || 
+                        performance.getEntriesByType('navigation')[0]?.type === 'reload';
     
     try {
-      // FORCE RESET: Always start as first time user by default
-      setIsFirstTimeUser(true);
-      setUserProfile(null);
-      setShowUserSetupModal(false);
-      
-      // Check if there's existing session data in sessionStorage (fallback for navigation)
-      const savedUserID = sessionStorage.getItem('currentUserID');
-      const savedFormData = sessionStorage.getItem('currentFormData');
-      
-      if (savedUserID) {
-        console.log('📱 Restored session:', savedUserID);
-        setCurrentUserID(savedUserID);
-        
-        // Check user profile - this will update isFirstTimeUser appropriately
-        await checkUserProfile(savedUserID);
-        
-        if (savedFormData) {
-          try {
-            const parsedFormData = JSON.parse(savedFormData);
-            setCurrentFormData(parsedFormData);
-            console.log('📋 Restored form data:', parsedFormData);
-          } catch (e) {
-            console.warn('⚠️ Failed to parse saved form data:', e);
-            // Clear corrupted data
-            sessionStorage.removeItem('currentFormData');
-          }
-        }
-
-        // Try to load existing roadmap data
-        await loadRoadmapData(savedUserID, true); // Silent load
-      } else {
-        // No saved user - definitely first time user
-        console.log('👤 No saved user - setting as first time user');
-        setIsFirstTimeUser(true);
-        setUserProfile(null);
-      }
-
+      // Set app as ready immediately - no loading state
       setAppState('ready');
+      
+      // Handle initial page load skeleton timing
+      if (isPageRefresh) {
+        setIsInitialPageLoad(true);
+        setTimeout(() => {
+          setIsInitialPageLoad(false);
+        }, 2000); // 2 seconds skeleton loading
+      } else {
+        // For fresh loads, show skeleton briefly
+        setIsInitialPageLoad(true);
+        setTimeout(() => {
+          setIsInitialPageLoad(false);
+        }, 1000); // Shorter delay for fresh loads
+      }
+      
       console.log('✅ MainApp initialized successfully');
       
     } catch (error) {
       console.error('❌ Failed to initialize app:', error);
       setAppState('error');
+      setIsInitialPageLoad(false);
     }
   };
 
@@ -886,20 +870,19 @@ const MainApp = () => {
         <ActiveComponent
           onRoadmapGenerated={handleRoadmapGenerated}
           onSwitchToWorkplace={switchToWorkplace}
-          // existingFormData={currentFormData}
           isGenerating={isGeneratingRoadmap}
           onProgress={handleGenerationProgress}
           onComplete={handleGenerationComplete}
           onError={handleGenerationError}
-          // Modal support props
           hasExistingRoadmap={hasExistingRoadmap()}
           currentUserID={currentUserID}
           roadmapData={roadmapData}
           onModalProceed={handleModalProceed}
           onModalCancel={handleModalCancel}
-          // Error handling props
           roadmapError={roadmapError}
           roadmapErrorType={roadmapErrorType}
+          // Add this new prop
+          isInitialPageLoad={isInitialPageLoad}
         />
       );
     }
@@ -926,6 +909,7 @@ const MainApp = () => {
           connectionStatus={connectionStatus}
           // Page refresh detection
           isPageRefresh={isPageRefresh()}
+          isInitialPageLoad={isInitialPageLoad}
         />
       );
     }
@@ -969,23 +953,23 @@ const MainApp = () => {
   }
 
   // === LOADING STATE ===
-  if (appState === 'initializing') {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
-        <div className="container mx-auto max-w-2xl">
-          <div className="text-center py-20">
-            <LoadingSpinner size="xl" className="mx-auto mb-4 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Initializing Application
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Please wait while we set up your learning environment...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (appState === 'initializing') {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
+  //       <div className="container mx-auto max-w-2xl">
+  //         <div className="text-center py-20">
+  //           <LoadingSpinner size="xl" className="mx-auto mb-4 text-blue-600" />
+  //           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+  //             Initializing Application
+  //           </h2>
+  //           <p className="text-gray-600 dark:text-gray-400">
+  //             Please wait while we set up your learning environment...
+  //           </p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // === MAIN RENDER WITH PROPER LAYOUT ===
   return (
@@ -994,6 +978,7 @@ const MainApp = () => {
       <Navbar
         activeTab={activeRoute}
         onTabChange={handleRouteChange}
+        isInitialPageLoad={isInitialPageLoad}
         tabs={NAVIGATION_TABS}
         userID={currentUserID}
         username={userProfile?.username}
@@ -1094,6 +1079,7 @@ const MainApp = () => {
               <div><strong>Generating:</strong> {isGeneratingRoadmap ? 'Yes' : 'No'}</div>
               <div><strong>Connection:</strong> {connectionStatus}</div>
               <div><strong>App State:</strong> {appState}</div>
+              <div><strong>Initial Load:</strong> {isInitialPageLoad ? 'Yes' : 'No'}</div>
               <div><strong>Session:</strong> {Math.round((new Date() - sessionStartTime) / 1000)}s</div>
               <div><strong>Error Type:</strong> {roadmapErrorType || 'None'}</div>
               <div><strong>Modal Open:</strong> {showInvalidUserModal ? 'Yes' : 'No'}</div>

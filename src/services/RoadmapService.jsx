@@ -344,6 +344,67 @@ class RoadmapService {
   }
 
   /**
+   * Fetch skill name for a specific user from Airtable User table
+   * @param {string} userID - Unique user identifier
+   * @returns {Promise<string|null>} Skill name or null if not found
+   * @throws {Error} If the fetch operation fails
+   */
+  static async fetchUserSkill(userID) {
+    console.log('🎯 Fetching user skill for:', userID);
+    
+    try {
+      // Validate userID
+      if (!userID) {
+        throw new Error('UserID is required');
+      }
+
+      // Build URL with filter parameters
+      const baseUrl = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_USER_TABLE}`;
+      const params = new URLSearchParams();
+      
+      // Add filter formula for UserID
+      params.append('filterByFormula', `{User ID} = '${userID}'`);
+      params.append('maxRecords', '1'); // We only expect one user record
+      
+      const url = `${baseUrl}?${params.toString()}`;
+      console.log('📡 Fetching user skill from:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Airtable user skill fetch error:', errorText);
+        throw new Error(`Airtable API failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('📋 User skill fetch response:', data);
+
+      // Return null if no user found
+      if (!data.records || data.records.length === 0) {
+        console.log('🎯 No user found for skill fetch, userID:', userID);
+        return null;
+      }
+
+      // Extract skill from the user record
+      const record = data.records[0];
+      const skill = record.fields.Skill || null;
+
+      console.log('✅ User skill fetched:', skill);
+      return skill;
+
+    } catch (error) {
+      console.error('❌ Failed to fetch user skill:', error);
+      throw new Error(`Failed to fetch user skill: ${error.message}`);
+    }
+  }
+
+  /**
    * Update the status of a specific task in Airtable
    * @param {string} recordId - Airtable record ID of the task
    * @param {string} status - New status ('Completed', 'Pending', 'In Progress')

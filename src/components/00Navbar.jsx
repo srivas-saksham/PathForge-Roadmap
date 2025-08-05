@@ -538,6 +538,7 @@ const ProfileDropdown = ({ isOpen, onClose, isExpanded, userID, username, onUser
 const Navbar = ({ 
   activeTab = 'home',
   onTabChange,
+  isInitialPageLoad = false,
   tabs = [
     { id: 'home', label: 'Home', description: 'Generate new roadmaps' },
     { id: 'roadmap', label: 'My Roadmap', description: 'View current learning path' },
@@ -622,6 +623,74 @@ const Navbar = ({
     if (hasRoadmap) return 'Active Learner';
     return 'Getting Started';
   };
+
+  // Skeleton Loading Components
+  const SkeletonNavItem = () => (
+    <div className="w-full flex items-center space-x-3 px-3 py-3 rounded-lg">
+      <div className="h-5 w-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse flex-shrink-0"></div>
+      {isExpanded && (
+        <div className="min-w-0 flex-1">
+          <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-1"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded animate-pulse w-3/4"></div>
+        </div>
+      )}
+    </div>
+  );
+
+  const SkeletonProfile = () => (
+    <div className="flex items-center space-x-3 px-3 py-3">
+      <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-full animate-pulse flex-shrink-0"></div>
+      {isExpanded && (
+        <div className="min-w-0 flex-1">
+          <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-1"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded animate-pulse w-2/3"></div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Show skeleton loading during initial page load
+  if (isInitialPageLoad) {
+    return (
+      <ThemeProvider>
+        <div className={`${isExpanded ? 'w-64' : 'w-16'} bg-[#c7dccd] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out flex flex-col h-screen flex-shrink-0 sticky top-0`}>
+          {/* Header Skeleton */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-lg animate-pulse flex-shrink-0"></div>
+                {isExpanded && (
+                  <div className="min-w-0 flex-1">
+                    <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-1"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded animate-pulse w-3/4"></div>
+                  </div>
+                )}
+              </div>
+              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Navigation Skeleton */}
+          <nav className="flex-1 py-4">
+            <div className="space-y-1 px-3">
+              {[1, 2, 3].map((i) => (
+                <SkeletonNavItem key={i} />
+              ))}
+            </div>
+          </nav>
+
+          {/* Bottom Sections Skeleton */}
+          <div className="border-t border-gray-200 dark:border-gray-800 p-3">
+            <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-3"></div>
+          </div>
+          <div className="border-t border-gray-200 dark:border-gray-800 p-3">
+            <SkeletonProfile />
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider>
       <div className={`${isExpanded ? 'w-64' : 'w-16'} bg-[#c7dccd] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out flex flex-col h-screen flex-shrink-0 sticky top-0`}>

@@ -164,6 +164,65 @@ const FeatureCard = ({ icon: Icon, title, description }) => (
   </div>
 );
 
+// Add these skeleton components after the existing UI components
+const SkeletonInput = () => (
+  <div className="space-y-2">
+    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+  </div>
+);
+
+const SkeletonButton = () => (
+  <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+);
+
+const SkeletonCard = () => (
+  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 animate-pulse">
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SkeletonInput />
+        <SkeletonInput />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SkeletonInput />
+        <SkeletonInput />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SkeletonInput />
+      </div>
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+        <SkeletonButton />
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonTipCard = () => (
+  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
+    <div className="space-y-4">
+      <div className="flex items-center space-x-2">
+        <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+      </div>
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded mt-0.5"></div>
+            <div className="space-y-2 flex-1">
+              <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 // --- MAIN HOME COMPONENT ---
 const Home = ({ 
   onRoadmapGenerated, 
@@ -172,7 +231,8 @@ const Home = ({
   isGenerating = false,
   hasExistingRoadmap = false,
   currentUserID = null,
-  onFirstTimeGeneration = null
+  onFirstTimeGeneration = null,
+  isInitialPageLoad = false
 }) => {
   // Use theme from context instead of local state
   const { isDarkMode } = useTheme();
@@ -204,6 +264,7 @@ const Home = ({
   const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState(null);
   const [submissionCount, setSubmissionCount] = useState(0);
+  const [isPageLoading, setIsPageLoading] = useState(isInitialPageLoad);;
 
   // Modal state
   const [showWarningModal, setShowWarningModal] = useState(false);
@@ -251,6 +312,16 @@ const Home = ({
       'hasExistingRoadmap': hasExistingRoadmap
     });
   }, [formData.userID, initialUserID, currentUserID, hasExistingRoadmap]);
+
+  // Add this useEffect to detect page load completion
+  useEffect(() => {
+  if (isInitialPageLoad) {
+    setIsPageLoading(true);
+    // The parent (MainApp) will control when this becomes false
+  } else {
+    setIsPageLoading(false);
+  }
+}, [isInitialPageLoad]);
 
   // Form validation
   const validateForm = () => {
@@ -508,7 +579,59 @@ const Home = ({
   const isCompleted = generationState === 'completed';
   const hasError = generationState === 'error';
 
+  if (isPageLoading) {
   return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      {/* Header Skeleton */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-between items-center">
+            <div className="text-center flex-1 space-y-4 animate-pulse">
+              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded w-80 mx-auto"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96 mx-auto"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-80 mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Skeleton */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Left Column - Form Skeleton */}
+          <div className="lg:col-span-2">
+            <SkeletonCard />
+          </div>
+
+          {/* Right Column - Tips Skeleton */}
+          <div className="space-y-8">
+            <SkeletonTipCard />
+            
+            {/* Quick Access Skeleton */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-600 p-6 text-center animate-pulse">
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded mx-auto mb-3"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-32 mx-auto mb-2"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-24 mx-auto mb-4"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-24 mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Skeleton */}
+      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center animate-pulse">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+  return (
+    
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Warning Modal */}
       <RoadmapWarningModal
