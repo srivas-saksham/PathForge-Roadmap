@@ -859,7 +859,7 @@ const Navbar = ({
           {isExpanded && (
             <div className="mt-3 px-3">
               <div className="text-xs text-gray-500 dark:text-gray-600 text-center transition-colors duration-200">
-                PathForge v2.1.0 • IBM Project
+                PathForge v1.1.3 • IBM Project
               </div>
             </div>
           )}

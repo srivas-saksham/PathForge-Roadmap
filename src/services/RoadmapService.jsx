@@ -706,6 +706,63 @@ class RoadmapService {
       errors: errors
     };
   }
+
+  /**
+   * Get total count of unique users from Airtable User table
+   * @returns {Promise<number>} Total number of unique users
+   * @throws {Error} If the fetch operation fails
+   */
+  static async getTotalUsersCount() {
+    console.log('📊 Fetching total users count...');
+    
+    try {
+      // Build URL for User table
+      const baseUrl = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_USER_TABLE}`;
+      const params = new URLSearchParams();
+      
+      // Add page size to get maximum records per request
+      params.append('pageSize', '100');
+      
+      const url = `${baseUrl}?${params.toString()}`;
+      
+      // Fetch all records (handle pagination)
+      let allRecords = [];
+      let offset = null;
+      
+      do {
+        const paginatedUrl = offset ? `${url}&offset=${offset}` : url;
+        
+        const response = await fetch(paginatedUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${CONFIG.AIRTABLE_API_KEY}`
+          }
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Airtable users count error:', errorText);
+          throw new Error(`Failed to fetch users count: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.records) {
+          allRecords = allRecords.concat(data.records);
+        }
+        
+        offset = data.offset;
+      } while (offset);
+
+      const totalUsers = allRecords.length;
+      console.log('✅ Total users count:', totalUsers);
+      return totalUsers;
+
+    } catch (error) {
+      console.error('❌ Failed to fetch total users count:', error);
+      throw new Error(`Failed to get users count: ${error.message}`);
+    }
+  }
 }
 
 export default RoadmapService;

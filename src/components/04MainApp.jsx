@@ -3,6 +3,7 @@ import { AlertCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import Home from './02Home';
 import Workplace from './03Workplace';
 import Navbar from './00Navbar';
+import Footer from './01Footer';
 import RoadmapService from '../services/RoadmapService';
 import UserSetupModal from './05UserSetupModal';
 import SignInModal from './07SignInModal';
@@ -103,6 +104,7 @@ const MainApp = () => {
   const [appState, setAppState] = useState('ready'); // 'initializing', 'ready', 'error'
   const [connectionStatus, setConnectionStatus] = useState('online');
   const [lastDataRefresh, setLastDataRefresh] = useState(new Date());
+  const [totalUsers, setTotalUsers] = useState(null);
 
   // === GENERATION STATE ===
   const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
@@ -149,19 +151,20 @@ const MainApp = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // === APP INITIALIZATION ===
   const initializeApp = async () => {
-  console.log('🚀 Initializing MainApp...');
-  
-  // Check if this is a page refresh/reload
-    const isPageRefresh = performance.navigation?.type === 1 || 
-                        performance.getEntriesByType('navigation')[0]?.type === 'reload';
+    console.log('🚀 Initializing MainApp...');
+    
+    // Check if this is a page refresh/reload
+    const isPageRefreshCheck = performance.navigation?.type === 1 || 
+                              performance.getEntriesByType('navigation')[0]?.type === 'reload';
     
     try {
       // Set app as ready immediately - no loading state
       setAppState('ready');
       
       // Handle initial page load skeleton timing
-      if (isPageRefresh) {
+      if (isPageRefreshCheck) {
         setIsInitialPageLoad(true);
         setTimeout(() => {
           setIsInitialPageLoad(false);
@@ -174,6 +177,70 @@ const MainApp = () => {
         }, 1000); // Shorter delay for fresh loads
       }
       
+      // Restore session data from sessionStorage
+      const savedUserID = sessionStorage.getItem('currentUserID');
+      const savedFormData = sessionStorage.getItem('currentFormData');
+      const savedUserProfile = sessionStorage.getItem('userProfile');
+      
+      if (savedUserID) {
+        console.log('🔄 Restoring user session:', savedUserID);
+        setCurrentUserID(savedUserID);
+        
+        // Restore user profile if available
+        if (savedUserProfile) {
+          try {
+            const profile = JSON.parse(savedUserProfile);
+            setUserProfile(profile);
+            setIsFirstTimeUser(!profile.username || profile.username === 'New User');
+            console.log('👤 Restored user profile:', profile);
+          } catch (e) {
+            console.warn('⚠️ Failed to parse saved user profile:', e);
+            sessionStorage.removeItem('userProfile');
+            // Fallback: check user profile from server
+            await checkUserProfile(savedUserID);
+          }
+        } else {
+          // No saved profile - check from server
+          await checkUserProfile(savedUserID);
+        }
+        
+        if (savedFormData) {
+          try {
+            const parsedFormData = JSON.parse(savedFormData);
+            setCurrentFormData(parsedFormData);
+            console.log('📋 Restored form data:', parsedFormData);
+          } catch (e) {
+            console.warn('⚠️ Failed to parse saved form data:', e);
+            sessionStorage.removeItem('currentFormData');
+          }
+        }
+
+        // If we're on workplace route, load roadmap data
+        const currentRoute = window.location.hash.slice(1) || 'home';
+        if (currentRoute === 'workplace') {
+          try {
+            await loadRoadmapData(savedUserID, false);
+          } catch (error) {
+            console.warn('⚠️ Failed to load roadmap data during initialization:', error);
+            // Don't throw - let the workplace component handle the error
+          }
+        }
+      } else {
+        // No saved user - definitely first time user
+        console.log('👤 No saved user - setting as first time user');
+        setIsFirstTimeUser(true);
+        setUserProfile(null);
+      }
+      
+      // Fetch total users count
+      try {
+        const usersCount = await RoadmapService.getTotalUsersCount();
+        setTotalUsers(usersCount);
+      } catch (error) {
+        console.warn('⚠️ Failed to fetch users count:', error);
+        setTotalUsers(21); // Fallback value
+      }
+
       console.log('✅ MainApp initialized successfully');
       
     } catch (error) {
@@ -734,9 +801,11 @@ const MainApp = () => {
       localStorage.clear();
       console.log('🗑️ localStorage cleared');
       
-      // Clear all sessionStorage
-      sessionStorage.clear();
-      console.log('🗑️ sessionStorage cleared');
+      // Clear session storage
+      sessionStorage.removeItem('currentUserID');
+      sessionStorage.removeItem('currentFormData');
+      sessionStorage.removeItem('userProfile');
+      console.log('🗑️ Session data cleared');
       
       // Reset all React states to initial values
       setActiveRoute('home');
@@ -799,6 +868,7 @@ const MainApp = () => {
       
       // Save to sessionStorage
       sessionStorage.setItem('currentUserID', inputUserID);
+      sessionStorage.setItem('userProfile', JSON.stringify(userProfile));
       
       // Step 3: Try to fetch roadmap data
       try {
@@ -831,7 +901,7 @@ const MainApp = () => {
   };
 
   // === PAGE REFRESH DETECTION ===
-  const isPageRefresh = () => {
+  const checkIfPageRefresh = () => {
     return performance.navigation && performance.navigation.type === 1;
   };
 
@@ -908,7 +978,7 @@ const MainApp = () => {
           // Connection status
           connectionStatus={connectionStatus}
           // Page refresh detection
-          isPageRefresh={isPageRefresh()}
+          isPageRefresh={checkIfPageRefresh()}
           isInitialPageLoad={isInitialPageLoad}
         />
       );
@@ -1050,6 +1120,16 @@ const MainApp = () => {
           {renderActiveComponent()}
         </main>
 
+        {/* Footer */}
+        <Footer 
+          onNavigate={handleRouteChange}
+          currentRoute={activeRoute}
+          totalRoadmaps={totalUsers}
+          userEmail={currentFormData?.email}
+          showStats={true}
+          className="mt-auto"
+        />
+
         {/* User Setup Modal */}
         {showUserSetupModal && (
           <UserSetupModal
@@ -1085,7 +1165,7 @@ const MainApp = () => {
               <div><strong>Modal Open:</strong> {showInvalidUserModal ? 'Yes' : 'No'}</div>
               <div><strong>Modal Type:</strong> {modalType}</div>
               <div><strong>Pending Overwrite:</strong> {pendingOverwriteData ? 'Yes' : 'No'}</div>
-              <div><strong>Page Refresh:</strong> {isPageRefresh() ? 'Yes' : 'No'}</div>
+              <div><strong>Page Refresh:</strong> {checkIfPageRefresh() ? 'Yes' : 'No'}</div>
               <div><strong>User Profile:</strong> {userProfile?.username || 'None'}</div>
               <div><strong>First Time:</strong> {isFirstTimeUser ? 'Yes' : 'No'}</div>
               <div><strong>Setup Modal:</strong> {showUserSetupModal ? 'Yes' : 'No'}</div>

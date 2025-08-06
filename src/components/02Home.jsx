@@ -617,15 +617,6 @@ const Home = ({
           </div>
         </div>
       </div>
-
-      {/* Footer Skeleton */}
-      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center animate-pulse">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 mx-auto"></div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -924,15 +915,6 @@ const Home = ({
                 </Button>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-sm text-gray-500 dark:text-gray-400 transition-colors duration-200">
-            <p>Powered by AI • Generate unlimited roadmaps • Track your progress</p>
           </div>
         </div>
       </div>
