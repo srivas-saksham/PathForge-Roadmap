@@ -4,7 +4,9 @@ import {
   ChevronDown, 
   ChevronUp,
   Zap,
-  Heart
+  Heart,
+  Linkedin,
+  Github
 } from 'lucide-react';
 
 const Footer = ({ 
@@ -15,6 +17,7 @@ const Footer = ({
 }) => {
   // State for dropdown
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   
   // State for stats animation
   const [animatedStats, setAnimatedStats] = useState({
@@ -48,12 +51,29 @@ const Footer = ({
     );
   }, [stats.roadmaps]);
 
-  // Team members data
+  /// Team members data
   const teamMembers = [
-    { name: 'Saksham Srivastava', role: 'Lead Developer' },
-    { name: 'Mohit', role: 'AI Integration' },
-    { name: 'Peeyush Tiwari', role: 'Backend Developer' },
-    { name: 'Darshil Khandelwal', role: 'Frontend Developer' }
+    { 
+      name: 'Saksham Srivastava', 
+      role: 'Lead Developer',
+      linkedin: 'https://www.linkedin.com/in/srivas-saksham/',
+      github: 'https://github.com/srivas-saksham'
+    },
+    { 
+      name: 'Mohit Ranjan', 
+      role: 'AI Integration',
+      linkedin: 'https://www.linkedin.com/in/mohit-ranjan-5a34a9340/'
+    },
+    { 
+      name: 'Peeyush Tiwari', 
+      role: 'Backend Developer',
+      linkedin: 'https://www.linkedin.com/in/peeyush-tiwari-105b22323/'
+    },
+    { 
+      name: 'Darshil Khandelwal', 
+      role: 'Frontend Developer',
+      linkedin: 'https://www.linkedin.com/in/darshil-khandelwal-59962b335/'
+    }
   ];
 
   // Handle navigation
@@ -63,22 +83,41 @@ const Footer = ({
     }
   };
 
-  // Handle dropdown toggle
+  // Handle dropdown toggle with animation
   const toggleTeamDropdown = () => {
-    setIsTeamDropdownOpen(!isTeamDropdownOpen);
+    if (isTeamDropdownOpen) {
+      // Closing animation
+      setIsAnimating(true);
+      setTimeout(() => {
+        setIsTeamDropdownOpen(false);
+        setIsAnimating(false);
+      }, 200); // Match the CSS transition duration
+    } else {
+      // Opening animation
+      setIsTeamDropdownOpen(true);
+      setIsAnimating(true);
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 200);
+    }
   };
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.team-dropdown')) {
-        setIsTeamDropdownOpen(false);
+      if (!event.target.closest('.team-dropdown') && isTeamDropdownOpen) {
+        // Trigger closing animation
+        setIsAnimating(true);
+        setTimeout(() => {
+          setIsTeamDropdownOpen(false);
+          setIsAnimating(false);
+        }, 200);
       }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [isTeamDropdownOpen]);
 
   return (
     <footer className={`bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 transition-colors duration-300 ${className}`}>
@@ -162,7 +201,7 @@ const Footer = ({
               <div className="relative team-dropdown">
                 <button
                   onClick={toggleTeamDropdown}
-                  className="flex items-center justify-between w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200"
+                  className="flex items-center justify-between w-full text-left p-3 bg-[#c7dccd] dark:bg-gray-700 rounded-lg hover:bg-[#b2cfba] dark:hover:bg-gray-600 transition-colors duration-200"
                 >
                   <div>
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100 transition-colors duration-200">
@@ -172,32 +211,83 @@ const Footer = ({
                       VIPS New Delhi • IBM Summer Internship
                     </div>
                   </div>
-                  {isTeamDropdownOpen ? (
-                    <ChevronUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  ) : (
+                  <div className="transition-transform duration-200" style={{
+                    transform: isTeamDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                  }}>
                     <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  )}
+                  </div>
                 </button>
                 
-                {isTeamDropdownOpen && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-2 z-10 transition-all duration-200">
+                {/* Dropdown with smooth animation */}
+                <div className={`absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10 transition-all duration-200 ease-in-out ${
+                  isTeamDropdownOpen 
+                    ? 'opacity-100 scale-100 translate-y-0' 
+                    : isAnimating 
+                      ? 'opacity-0 scale-95 translate-y-2' 
+                      : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+                }`} style={{
+                  maxHeight: isTeamDropdownOpen ? '400px' : '0px',
+                  transitionProperty: 'opacity, transform, max-height',
+                  overflow: isTeamDropdownOpen ? 'visible' : 'hidden'
+                }}>
+                  <div className="py-2">
                     <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600">
                       <div className="text-xs font-medium text-gray-900 dark:text-gray-100 transition-colors duration-200">
                         Development Team
                       </div>
                     </div>
                     {teamMembers.map((member, index) => (
-                      <div key={index} className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
-                        <div className="text-xs font-medium text-gray-900 dark:text-gray-100 transition-colors duration-200">
-                          {member.name}
+                      <div key={index} className={`px-3 py-2 hover:bg-[#c7dccd] dark:hover:bg-gray-600 transition-all duration-200 flex items-center justify-between ${
+                        isTeamDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                      }`} style={{
+                        transitionDelay: isTeamDropdownOpen ? `${index * 50}ms` : '0ms'
+                      }}>
+                        <div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100 transition-colors duration-200">
+                            {member.name}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 transition-colors duration-200">
+                            {member.role}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 transition-colors duration-200">
-                          {member.role}
+                        <div className="flex items-center gap-2">
+                          {member.github && (
+                            <div className="relative group">
+                              <a
+                                href={member.github}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-500 dark:text-gray-400 hover:text-[#5C946E] dark:hover:text-[#5C946E] transition-all duration-200 hover:scale-110"
+                                aria-label={`View ${member.name}'s GitHub profile`}
+                              >
+                                <Github className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-20">
+                                GitHub Profile
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="relative group">
+                            <a
+                              href={member.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-500 dark:text-gray-400 hover:text-[#5C946E] dark:hover:text-[#5C946E] transition-all duration-200 hover:scale-110"
+                              aria-label={`View ${member.name}'s LinkedIn profile`}
+                            >
+                              <Linkedin className="w-4 h-4" />
+                            </a>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-20">
+                              LinkedIn Profile
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>

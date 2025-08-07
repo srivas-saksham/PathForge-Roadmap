@@ -517,6 +517,10 @@ const Workplace = ({
   const [hideWarningPreference, setHideWarningPreference] = useState(false);
 
   useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [location.hash])
+    
+  useEffect(() => {
       document.title = 'PathForge - WorkPlace';
     }, []);
 
