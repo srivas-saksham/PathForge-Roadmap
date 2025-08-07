@@ -12,7 +12,7 @@
 
 PathForge revolutionizes skill acquisition by generating **personalized learning roadmaps** using advanced AI algorithms. Built during the prestigious IBM Summer Internship 2025, this platform addresses the critical challenge of structured learning in today's fast-paced digital world.
 
-### **[Launch PathForge →](https://srivas-saksham.github.io/PathForge-Roapmap-AI-Agent/)**
+### **[Launch PathForge →](https://srivas-saksham.github.io/PathForge-Roadmap/)**
 
 ---
 
