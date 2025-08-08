@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/PathForge-Roadmap/static/css/main.57143728.css",
-    "main.js": "/PathForge-Roadmap/static/js/main.ae881e7a.js",
+    "main.css": "/PathForge-Roadmap/static/css/main.9aa1c5a6.css",
+    "main.js": "/PathForge-Roadmap/static/js/main.cf8335aa.js",
     "static/media/logo-trans.png": "/PathForge-Roadmap/static/media/logo-trans.ad7ec4733ce83ba310e2.png",
     "index.html": "/PathForge-Roadmap/index.html",
-    "main.57143728.css.map": "/PathForge-Roadmap/static/css/main.57143728.css.map",
-    "main.ae881e7a.js.map": "/PathForge-Roadmap/static/js/main.ae881e7a.js.map"
+    "main.9aa1c5a6.css.map": "/PathForge-Roadmap/static/css/main.9aa1c5a6.css.map",
+    "main.cf8335aa.js.map": "/PathForge-Roadmap/static/js/main.cf8335aa.js.map"
   },
   "entrypoints": [
-    "static/css/main.57143728.css",
-    "static/js/main.ae881e7a.js"
+    "static/css/main.9aa1c5a6.css",
+    "static/js/main.cf8335aa.js"
   ]
 }
