@@ -1,8 +1,8 @@
 # PathForge - AI-Powered Learning Roadmap Platform
 
-[![Website](https://img.shields.io/badge/Website-Live-brightgreen)](https://srivas-saksham.github.io/PathForge-Roapmap-AI-Agent/)
+[![Website](https://img.shields.io/badge/Website-Live-brightgreen)](https://srivas-saksham.github.io/PathForge-Roadmap/)
 [![React](https://img.shields.io/badge/React-18.0-blue)](https://reactjs.org)
-[![AI Powered](https://img.shields.io/badge/AI-Powered-orange)](https://github.com/srivas-saksham/PathForge-Roapmap-AI-Agent)
+[![AI Powered](https://img.shields.io/badge/AI-Powered-orange)](https://github.com/srivas-saksham/PathForge-Roadmap)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 > **Developed during IBM Summer Internship 2025** 🎓  
@@ -12,7 +12,7 @@
 
 PathForge revolutionizes skill acquisition by generating **personalized learning roadmaps** using advanced AI algorithms. Built during the prestigious IBM Summer Internship 2025, this platform addresses the critical challenge of structured learning in today's fast-paced digital world.
 
-### **[Launch PathForge →](https://srivas-saksham.github.io/PathForge-Roapmap-AI-Agent/)**
+### **[Launch PathForge →](https://srivas-saksham.github.io/PathForge-Roadmap/)**
 
 ---
 
@@ -54,6 +54,6 @@ AI Service (Relay Planner) + Airtable Database
 
 <div align="center">
   Experience
-  <a href='https://srivas-saksham.github.io/PathForge-Roapmap-AI-Agent/'>PathForge</a>
+  <a href='https://srivas-saksham.github.io/PathForge-Roadmap/'>PathForge</a>
   Live
 </div>
